@@ -1,0 +1,105 @@
+Project goal:
+Build an American Mahjong web app MVP with multiplayer tables, bots, and a path to subscriptions. Compliant with NMJL-style mechanics without copying League card text or design.
+
+Tech choices:
+- Next.js (App Router) + React + TypeScript
+- Tailwind + shadcn/ui
+- Node API routes with tRPC (or REST if tRPC unavailable)
+- WebSockets (Socket.IO) for realtime
+- PostgreSQL + Prisma
+- Auth via Auth.js (email + OAuth). Username required.
+- Stripe-ready subscription scaffolding behind a feature flag
+- Vercel deploy target. WebSocket server can run on Fly or a Node process.
+
+Routes and pages:
+- /: marketing landing with CTA to Play, Learn, and Shop
+- /play: lobby listing joinable tables, create table form
+- /table/[id]: game table with 4 seats, chat, action tray, tiles, discards, melds, flowers, turn indicator, call/expose controls, and reconnect flow
+- /learn: tutorial with step-by-step drills (Charleston, exposures, calling, jokers)
+- /puzzle: daily practice puzzle generated from a deterministic seed
+- /profile: settings for tile skins, layout, accessibility, hints, sound
+- /shop: placeholder page with external link button to a future storefront
+- /admin: ruleset management (upload JSON), moderation queue, feature flags
+- /legal/terms and /legal/privacy
+
+Core backend features:
+- Server-authoritative game loop with seeded RNG
+- Table lifecycle: create, invite, join, ready-check, start, pause, resume, finish
+- Reconnection: on refresh, client resyncs from authoritative state
+- Audit log: append-only log of actions for dispute review
+- Rate limits on chat and AI hints
+
+Game rules (American Mahjong 2025 style):
+- Implement rules as data-driven “patterns” in JSON. Do not include or copy NMJL card text or images.
+- Schema example:
+  {
+    "name": "Example Even Hand",
+    "concealedOnly": false,
+    "sets": [
+      {"type": "pung", "tileSet": "evens_one_suit"},
+      {"type": "pung", "tileSet": "evens_one_suit"},
+      {"type": "kong", "tileSet": "evens_one_suit"},
+      {"type": "pair", "tileSet": "dragons_any"}
+    ],
+    "jokersAllowed": true,
+    "flowersUsage": "optional"
+  }
+- Rules engine must validate exposures, calls, Charleston toggles, Flowers, jokers, and winning hands using the abstracted patterns.
+
+Bots:
+- Pluggable bot service on the server
+- Levels: Easy, Standard, Strong
+- Bot considers hand potential, discards, safe tiles, and table state
+
+Suggested hands engine:
+- Given current rack and known discards, score candidate patterns and suggest top 3
+- Show explanation strings without quoting NMJL card text
+
+AI explainer (stub):
+- API route that accepts a board snapshot and returns a short “why this move is or isn’t legal” explanation
+- Wrap calls with a queue and rate limit; return cached results for identical states
+
+Daily puzzle:
+- Generate a deterministic puzzle from date + salt
+- Store solutions and a small leaderboard
+
+Monetization scaffolding:
+- Stripe setup with “Pro” plan
+- Entitlement checks for ad-free, custom skins, and club features
+- Feature flag to disable billing in dev
+
+Customization:
+- Tile skin system with at least 3 starter themes
+- Layout presets: compact, standard, large
+- High-contrast and colorblind-friendly options
+
+Social and safety:
+- Table chat with profanity filter
+- Report table and block user
+- Private tables via invite code
+
+Analytics:
+- Simple event collector for table_joined, hand_started, exposure_made, call_declined, hand_won, table_left
+- User-level privacy toggle
+
+Testing:
+- Unit tests for validator, Charleston, call rules, joker substitution
+- Integration test: create table, join 4 seats (2 bots), play a full hand
+
+Out of scope for now (stub only):
+- Mobile apps, tournaments, ranking/ELO, ecommerce checkout
+
+Please generate:
+- Database schema (Prisma)
+- API routes and WebSocket handlers for lobby and table
+- Rules engine interfaces with one sample pattern file
+- Basic bot that draws/discards legally and picks from suggested hands
+- React components: Table, Rack, Discard area, Melds, ActionTray, Chat, Settings
+- Feature flag service with “billing_enabled” and “ai_hints_enabled”
+- Auth, profile page, and entitlement checks
+- Tutorial scaffolding with a step list and placeholder content
+- Daily puzzle generator and page
+- Shop placeholder page with external link button
+- Terms and Privacy pages
+- Unit and integration test skeletons
+- Env-var example and seed script
