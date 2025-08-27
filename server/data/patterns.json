@@ -1,0 +1,161 @@
+[
+  {
+    "name": "Three Pairs Plus One",
+    "category": "Pairs",
+    "description": "Three pairs of any tiles plus one additional tile",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pair", "tileSet": "any"},
+      {"type": "pair", "tileSet": "any"},
+      {"type": "pair", "tileSet": "any"},
+      {"type": "pair", "tileSet": "any"}
+    ],
+    "points": 25,
+    "isActive": true
+  },
+  {
+    "name": "Even Numbers One Suit",
+    "category": "Numerical",
+    "description": "Even numbered tiles (2, 4, 6, 8) in one suit",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "evens_one_suit"},
+      {"type": "pung", "tileSet": "evens_one_suit"},
+      {"type": "pung", "tileSet": "evens_one_suit"},
+      {"type": "pair", "tileSet": "evens_one_suit"}
+    ],
+    "points": 25,
+    "isActive": true
+  },
+  {
+    "name": "Odd Numbers One Suit",
+    "category": "Numerical",
+    "description": "Odd numbered tiles (1, 3, 5, 7, 9) in one suit",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "odds_one_suit"},
+      {"type": "pung", "tileSet": "odds_one_suit"},
+      {"type": "pung", "tileSet": "odds_one_suit"},
+      {"type": "pair", "tileSet": "odds_one_suit"}
+    ],
+    "points": 25,
+    "isActive": true
+  },
+  {
+    "name": "Consecutive Run",
+    "category": "Sequential",
+    "description": "Four consecutive numbers in one suit",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "consecutive_run"},
+      {"type": "pung", "tileSet": "consecutive_run"},
+      {"type": "pung", "tileSet": "consecutive_run"},
+      {"type": "pair", "tileSet": "consecutive_run"}
+    ],
+    "points": 30,
+    "isActive": true
+  },
+  {
+    "name": "All Dragons",
+    "category": "Honor Tiles",
+    "description": "Red, Green, and White Dragons",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "red_dragons"},
+      {"type": "pung", "tileSet": "green_dragons"},
+      {"type": "pung", "tileSet": "white_dragons"},
+      {"type": "pair", "tileSet": "dragons_any"}
+    ],
+    "points": 35,
+    "isActive": true
+  },
+  {
+    "name": "All Winds",
+    "category": "Honor Tiles",
+    "description": "North, East, South, and West Winds",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "north_winds"},
+      {"type": "pung", "tileSet": "east_winds"},
+      {"type": "pung", "tileSet": "south_winds"},
+      {"type": "pair", "tileSet": "west_winds"}
+    ],
+    "points": 35,
+    "isActive": true
+  },
+  {
+    "name": "Like Numbers",
+    "category": "Numerical",
+    "description": "Same number in different suits",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "same_number_different_suits"},
+      {"type": "pung", "tileSet": "same_number_different_suits"},
+      {"type": "pung", "tileSet": "same_number_different_suits"},
+      {"type": "pair", "tileSet": "same_number_different_suits"}
+    ],
+    "points": 30,
+    "isActive": true
+  },
+  {
+    "name": "Winds and Dragons",
+    "category": "Honor Tiles",
+    "description": "Mix of Wind and Dragon tiles",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "winds_any"},
+      {"type": "pung", "tileSet": "winds_any"},
+      {"type": "pung", "tileSet": "dragons_any"},
+      {"type": "pair", "tileSet": "honor_tiles"}
+    ],
+    "points": 30,
+    "isActive": true
+  },
+  {
+    "name": "Quint Hand",
+    "category": "Special",
+    "description": "One quint (5 of a kind) plus additional sets",
+    "concealedOnly": false,
+    "jokersAllowed": true,
+    "flowersUsage": "required",
+    "patternSets": [
+      {"type": "quint", "tileSet": "any"},
+      {"type": "pung", "tileSet": "any"},
+      {"type": "pair", "tileSet": "any"}
+    ],
+    "points": 50,
+    "isActive": true
+  },
+  {
+    "name": "Concealed Hand",
+    "category": "Special",
+    "description": "Entire hand must be concealed (no exposures)",
+    "concealedOnly": true,
+    "jokersAllowed": true,
+    "flowersUsage": "optional",
+    "patternSets": [
+      {"type": "pung", "tileSet": "any"},
+      {"type": "pung", "tileSet": "any"},
+      {"type": "pung", "tileSet": "any"},
+      {"type": "pair", "tileSet": "any"}
+    ],
+    "points": 40,
+    "isActive": true
+  }
+]

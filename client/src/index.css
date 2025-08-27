@@ -1,0 +1,302 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(224 20% 15%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(224 20% 15%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(224 20% 15%);
+  --primary: hsl(142 76% 36%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(210 40% 98%);
+  --secondary-foreground: hsl(224 20% 15%);
+  --muted: hsl(210 40% 98%);
+  --muted-foreground: hsl(215 16% 47%);
+  --accent: hsl(47 96% 53%);
+  --accent-foreground: hsl(224 20% 15%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(142 76% 36%);
+  --success: hsl(142 76% 36%);
+  --warning: hsl(38 92% 50%);
+  --info: hsl(221 83% 53%);
+  --chart-1: hsl(12 76% 61%);
+  --chart-2: hsl(173 58% 39%);
+  --chart-3: hsl(197 37% 24%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(224 20% 15%);
+  --sidebar-primary: hsl(142 76% 36%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(210 40% 95%);
+  --sidebar-accent-foreground: hsl(142 76% 36%);
+  --sidebar-border: hsl(214 32% 91%);
+  --sidebar-ring: hsl(142 76% 36%);
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --radius: 0.75rem;
+  --glass-bg: hsla(0, 0%, 100%, 0.7);
+  --glass-border: hsla(0, 0%, 100%, 0.18);
+  --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.1), 0 4px 16px -4px hsl(0 0% 0% / 0.08);
+  --shadow-medium: 0 4px 16px -4px hsl(0 0% 0% / 0.12), 0 8px 32px -8px hsl(0 0% 0% / 0.1);
+  --shadow-strong: 0 8px 32px -8px hsl(0 0% 0% / 0.16), 0 16px 64px -16px hsl(0 0% 0% / 0.12);
+  --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 86% 26%) 100%);
+  --gradient-accent: linear-gradient(135deg, hsl(47 96% 53%) 0%, hsl(38 92% 50%) 100%);
+  --gradient-surface: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+}
+
+.dark {
+  --background: hsl(224 71% 4%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(224 71% 4%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(224 71% 4%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(142 76% 36%);
+  --primary-foreground: hsl(224 71% 4%);
+  --secondary: hsl(217 33% 17%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217 33% 17%);
+  --muted-foreground: hsl(215 20% 65%);
+  --accent: hsl(47 96% 53%);
+  --accent-foreground: hsl(224 71% 4%);
+  --destructive: hsl(0 63% 31%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217 33% 17%);
+  --input: hsl(217 33% 17%);
+  --ring: hsl(142 76% 36%);
+  --success: hsl(142 76% 36%);
+  --warning: hsl(38 92% 50%);
+  --info: hsl(221 83% 53%);
+  --chart-1: hsl(220 70% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+  --sidebar: hsl(224 71% 4%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(142 76% 36%);
+  --sidebar-primary-foreground: hsl(224 71% 4%);
+  --sidebar-accent: hsl(217 33% 17%);
+  --sidebar-accent-foreground: hsl(142 76% 36%);
+  --sidebar-border: hsl(217 33% 17%);
+  --sidebar-ring: hsl(142 76% 36%);
+  --glass-bg: hsla(224, 71%, 4%, 0.7);
+  --glass-border: hsla(210, 40%, 98%, 0.18);
+  --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.25);
+  --shadow-medium: 0 4px 16px -4px hsl(0 0% 0% / 0.35), 0 8px 32px -8px hsl(0 0% 0% / 0.3);
+  --shadow-strong: 0 8px 32px -8px hsl(0 0% 0% / 0.4), 0 16px 64px -16px hsl(0 0% 0% / 0.35);
+  --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 86% 26%) 100%);
+  --gradient-accent: linear-gradient(135deg, hsl(47 96% 53%) 0%, hsl(38 92% 50%) 100%);
+  --gradient-surface: linear-gradient(145deg, hsl(224 71% 4%) 0%, hsl(217 33% 17%) 100%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+  }
+
+  /* Selection styles */
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  ::-moz-selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+/* Modern mahjong tile styles */
+.mahjong-tile {
+  background: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+  border: 1px solid hsl(214 32% 91%);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.mahjong-tile:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: var(--shadow-medium);
+  border-color: var(--primary);
+}
+
+.mahjong-tile:active {
+  transform: translateY(-2px) scale(1.01);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.game-table-bg {
+  background: radial-gradient(ellipse at center, hsl(142 40% 20%) 0%, hsl(142 50% 15%) 40%, hsl(142 60% 10%) 100%);
+  position: relative;
+}
+
+.game-table-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, hsla(142, 76%, 36%, 0.03) 2deg, transparent 4deg);
+  pointer-events: none;
+}
+
+.gradient-hero {
+  background: var(--gradient-primary);
+  position: relative;
+}
+
+.gradient-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, hsla(47, 96%, 53%, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 70% 80%, hsla(142, 86%, 26%, 0.15) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Glass morphism utilities */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.glass-strong {
+  background: hsla(0, 0%, 100%, 0.8);
+  border: 1px solid hsla(0, 0%, 100%, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dark .glass {
+  background: hsla(224, 71%, 4%, 0.8);
+  border: 1px solid hsla(210, 40%, 98%, 0.15);
+}
+
+.dark .glass-strong {
+  background: hsla(224, 71%, 4%, 0.9);
+  border: 1px solid hsla(210, 40%, 98%, 0.2);
+}
+
+/* Modern button styles */
+.btn-modern {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-modern::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-modern:hover::before {
+  left: 100%;
+}
+
+/* Improved animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px var(--primary); }
+  50% { box-shadow: 0 0 20px var(--primary), 0 0 30px var(--primary); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+  background-size: 200px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Utility classes */
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.bg-gradient-accent {
+  background: var(--gradient-accent);
+}
+
+.bg-gradient-surface {
+  background: var(--gradient-surface);
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-medium);
+}
+
+.shadow-strong {
+  box-shadow: var(--shadow-strong);
+}

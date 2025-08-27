@@ -1,0 +1,499 @@
+import { WebSocketServer, WebSocket } from 'ws';
+import { Server } from 'http';
+import { storage } from './storage';
+import { gameEngine } from './services/gameEngine';
+import { botService } from './services/botService';
+import { analyticsService } from './services/analytics';
+import { featureFlagService } from './services/featureFlags';
+
+export interface WebSocketMessage {
+  type: string;
+  data?: any;
+  tableId?: string;
+  gameId?: string;
+}
+
+export interface ClientConnection {
+  ws: WebSocket;
+  userId?: string;
+  sessionId: string;
+  tableId?: string;
+  isAlive: boolean;
+  lastPing: number;
+}
+
+export class WebSocketManager {
+  private wss: WebSocketServer;
+  private clients: Map<string, ClientConnection> = new Map();
+  private tableClients: Map<string, Set<string>> = new Map();
+
+  constructor(server: Server) {
+    this.wss = new WebSocketServer({ 
+      server, 
+      path: '/ws',
+      clientTracking: false
+    });
+
+    this.setupWebSocket();
+    this.startHeartbeat();
+  }
+
+  private setupWebSocket(): void {
+    this.wss.on('connection', (ws: WebSocket, req: any) => {
+      const sessionId = this.generateSessionId();
+      const clientId = sessionId;
+
+      const client: ClientConnection = {
+        ws,
+        sessionId,
+        isAlive: true,
+        lastPing: Date.now()
+      };
+
+      this.clients.set(clientId, client);
+
+      // Setup message handling
+      ws.on('message', async (message: Buffer) => {
+        try {
+          const data = JSON.parse(message.toString()) as WebSocketMessage;
+          await this.handleMessage(clientId, data);
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+          this.sendToClient(clientId, {
+            type: 'error',
+            data: { message: 'Invalid message format' }
+          });
+        }
+      });
+
+      // Handle client disconnect
+      ws.on('close', () => {
+        this.handleClientDisconnect(clientId);
+      });
+
+      // Handle pong responses
+      ws.on('pong', () => {
+        const client = this.clients.get(clientId);
+        if (client) {
+          client.isAlive = true;
+          client.lastPing = Date.now();
+        }
+      });
+
+      // Send initial connection confirmation
+      this.sendToClient(clientId, {
+        type: 'connected',
+        data: { sessionId }
+      });
+    });
+  }
+
+  private async handleMessage(clientId: string, message: WebSocketMessage): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    switch (message.type) {
+      case 'authenticate':
+        await this.handleAuthentication(clientId, message.data);
+        break;
+      
+      case 'join_table':
+        await this.handleJoinTable(clientId, message.data);
+        break;
+      
+      case 'leave_table':
+        await this.handleLeaveTable(clientId, message.data);
+        break;
+      
+      case 'game_action':
+        await this.handleGameAction(clientId, message);
+        break;
+      
+      case 'chat_message':
+        await this.handleChatMessage(clientId, message.data);
+        break;
+      
+      case 'ready_check':
+        await this.handleReadyCheck(clientId, message.data);
+        break;
+      
+      case 'charleston_pass':
+        await this.handleCharlestonPass(clientId, message.data);
+        break;
+      
+      default:
+        console.warn(`Unknown message type: ${message.type}`);
+    }
+  }
+
+  private async handleAuthentication(clientId: string, data: any): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    // In a real implementation, you'd validate the auth token
+    // For now, we'll use the provided userId
+    client.userId = data.userId;
+
+    this.sendToClient(clientId, {
+      type: 'authenticated',
+      data: { userId: data.userId }
+    });
+  }
+
+  private async handleJoinTable(clientId: string, data: any): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.userId) return;
+
+    const { tableId } = data;
+    
+    try {
+      const table = await storage.getGameTable(tableId);
+      if (!table) {
+        this.sendToClient(clientId, {
+          type: 'error',
+          data: { message: 'Table not found' }
+        });
+        return;
+      }
+
+      // Add client to table
+      client.tableId = tableId;
+      
+      if (!this.tableClients.has(tableId)) {
+        this.tableClients.set(tableId, new Set());
+      }
+      this.tableClients.get(tableId)!.add(clientId);
+
+      // Get current game state
+      const currentGame = table.currentGameId ? await storage.getGame(table.currentGameId) : null;
+      const participants = currentGame ? await storage.getGameParticipants(currentGame.id) : [];
+
+      // Send table state to client
+      this.sendToClient(clientId, {
+        type: 'table_joined',
+        data: {
+          table,
+          currentGame,
+          participants
+        }
+      });
+
+      // Notify other clients in the table
+      this.broadcastToTable(tableId, {
+        type: 'player_joined',
+        data: { userId: client.userId }
+      }, clientId);
+
+      // Track analytics
+      await analyticsService.trackTableJoined(
+        client.userId,
+        tableId,
+        client.sessionId,
+        table.isPrivate,
+        participants.length + 1
+      );
+
+    } catch (error) {
+      console.error('Error joining table:', error);
+      this.sendToClient(clientId, {
+        type: 'error',
+        data: { message: 'Failed to join table' }
+      });
+    }
+  }
+
+  private async handleLeaveTable(clientId: string, data: any): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.tableId) return;
+
+    const tableId = client.tableId;
+    
+    // Remove client from table
+    this.tableClients.get(tableId)?.delete(clientId);
+    client.tableId = undefined;
+
+    // Notify other clients
+    this.broadcastToTable(tableId, {
+      type: 'player_left',
+      data: { userId: client.userId }
+    }, clientId);
+
+    // Track analytics
+    if (client.userId) {
+      await analyticsService.trackTableLeft(
+        client.userId,
+        tableId,
+        client.sessionId,
+        0 // Would calculate actual session duration
+      );
+    }
+  }
+
+  private async handleGameAction(clientId: string, message: WebSocketMessage): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.userId || !client.tableId) return;
+
+    const { action, data } = message.data;
+
+    try {
+      // Get current game
+      const table = await storage.getGameTable(client.tableId);
+      if (!table || !table.currentGameId) return;
+
+      const game = await storage.getGame(table.currentGameId);
+      if (!game) return;
+
+      const participants = await storage.getGameParticipants(game.id);
+      const currentPlayer = participants.find(p => p.userId === client.userId);
+      if (!currentPlayer) return;
+
+      // Process the action based on type
+      let actionResult;
+      switch (action) {
+        case 'draw_tile':
+          actionResult = await this.processDrawTile(game, currentPlayer, data);
+          break;
+        case 'discard_tile':
+          actionResult = await this.processDiscardTile(game, currentPlayer, data);
+          break;
+        case 'call_tile':
+          actionResult = await this.processCallTile(game, currentPlayer, data);
+          break;
+        case 'expose_meld':
+          actionResult = await this.processExposeMeld(game, currentPlayer, data);
+          break;
+        default:
+          console.warn(`Unknown game action: ${action}`);
+          return;
+      }
+
+      if (actionResult) {
+        // Log the action
+        await storage.logGameAction({
+          gameId: game.id,
+          playerId: client.userId,
+          actionType: action,
+          actionData: data,
+          gameStateBefore: game.gameState,
+          gameStateAfter: actionResult.newGameState
+        });
+
+        // Update game state
+        await storage.updateGame(game.id, {
+          gameState: actionResult.newGameState,
+          currentPlayerIndex: actionResult.nextPlayerIndex
+        });
+
+        // Broadcast action to all players in the table
+        this.broadcastToTable(client.tableId, {
+          type: 'game_action',
+          data: {
+            action,
+            playerId: client.userId,
+            result: actionResult,
+            gameState: actionResult.newGameState
+          }
+        });
+
+        // Handle bot turns if next player is a bot
+        const nextParticipant = participants[actionResult.nextPlayerIndex];
+        if (nextParticipant?.isBot) {
+          setTimeout(() => {
+            this.processBotTurn(game.id, nextParticipant);
+          }, botService.getBotResponseDelay('standard'));
+        }
+      }
+
+    } catch (error) {
+      console.error('Error processing game action:', error);
+      this.sendToClient(clientId, {
+        type: 'error',
+        data: { message: 'Failed to process game action' }
+      });
+    }
+  }
+
+  private async handleChatMessage(clientId: string, data: any): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.userId || !client.tableId) return;
+
+    // Check if chat is enabled
+    const chatEnabled = await featureFlagService.isFeatureEnabled('chat_enabled', client.userId);
+    if (!chatEnabled) {
+      this.sendToClient(clientId, {
+        type: 'error',
+        data: { message: 'Chat is currently disabled' }
+      });
+      return;
+    }
+
+    try {
+      // Store chat message
+      const message = await storage.createChatMessage({
+        tableId: client.tableId,
+        userId: client.userId,
+        message: data.message
+      });
+
+      // Broadcast to all clients in the table
+      this.broadcastToTable(client.tableId, {
+        type: 'chat_message',
+        data: message
+      });
+
+    } catch (error) {
+      console.error('Error handling chat message:', error);
+    }
+  }
+
+  private async handleReadyCheck(clientId: string, data: any): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.userId || !client.tableId) return;
+
+    try {
+      // Update player ready status
+      // This would involve updating the game participant record
+      
+      // Broadcast ready status to table
+      this.broadcastToTable(client.tableId, {
+        type: 'player_ready',
+        data: { userId: client.userId, ready: data.ready }
+      });
+
+    } catch (error) {
+      console.error('Error handling ready check:', error);
+    }
+  }
+
+  private async handleCharlestonPass(clientId: string, data: any): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.userId || !client.tableId) return;
+
+    try {
+      // Process Charleston pass
+      // This would update the game state with the passed tiles
+      
+      this.broadcastToTable(client.tableId, {
+        type: 'charleston_pass',
+        data: { userId: client.userId, passedTiles: data.tiles }
+      });
+
+    } catch (error) {
+      console.error('Error handling Charleston pass:', error);
+    }
+  }
+
+  // Game action processors
+  private async processDrawTile(game: any, player: any, data: any): Promise<any> {
+    // Implement tile drawing logic
+    return {
+      newGameState: game.gameState,
+      nextPlayerIndex: game.currentPlayerIndex
+    };
+  }
+
+  private async processDiscardTile(game: any, player: any, data: any): Promise<any> {
+    // Implement tile discarding logic
+    return {
+      newGameState: game.gameState,
+      nextPlayerIndex: (game.currentPlayerIndex + 1) % 4
+    };
+  }
+
+  private async processCallTile(game: any, player: any, data: any): Promise<any> {
+    // Implement tile calling logic
+    return {
+      newGameState: game.gameState,
+      nextPlayerIndex: player.seatPosition
+    };
+  }
+
+  private async processExposeMeld(game: any, player: any, data: any): Promise<any> {
+    // Implement meld exposure logic
+    return {
+      newGameState: game.gameState,
+      nextPlayerIndex: (game.currentPlayerIndex + 1) % 4
+    };
+  }
+
+  // Bot turn processing
+  private async processBotTurn(gameId: string, botParticipant: any): Promise<void> {
+    try {
+      const game = await storage.getGame(gameId);
+      if (!game) return;
+
+      // Get bot decision
+      const botAction = botService.decideBotAction(
+        botParticipant,
+        game.gameState,
+        'standard', // Would get from table settings
+        ['draw', 'discard'] // Would determine available actions
+      );
+
+      // Process bot action similar to player actions
+      // This would trigger the same game state updates and broadcasts
+
+    } catch (error) {
+      console.error('Error processing bot turn:', error);
+    }
+  }
+
+  // Utility methods
+  private sendToClient(clientId: string, message: WebSocketMessage): void {
+    const client = this.clients.get(clientId);
+    if (client && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify(message));
+    }
+  }
+
+  private broadcastToTable(tableId: string, message: WebSocketMessage, excludeClientId?: string): void {
+    const tableClientIds = this.tableClients.get(tableId);
+    if (!tableClientIds) return;
+
+    for (const clientId of tableClientIds) {
+      if (clientId !== excludeClientId) {
+        this.sendToClient(clientId, message);
+      }
+    }
+  }
+
+  private handleClientDisconnect(clientId: string): void {
+    const client = this.clients.get(clientId);
+    if (client && client.tableId) {
+      this.tableClients.get(client.tableId)?.delete(clientId);
+      
+      // Notify table of disconnection
+      this.broadcastToTable(client.tableId, {
+        type: 'player_disconnected',
+        data: { userId: client.userId }
+      });
+    }
+    
+    this.clients.delete(clientId);
+  }
+
+  // Heartbeat to detect dead connections
+  private startHeartbeat(): void {
+    setInterval(() => {
+      this.clients.forEach((client, clientId) => {
+        if (!client.isAlive) {
+          this.handleClientDisconnect(clientId);
+          return;
+        }
+        
+        client.isAlive = false;
+        if (client.ws.readyState === WebSocket.OPEN) {
+          client.ws.ping();
+        }
+      });
+    }, 30000); // 30 seconds
+  }
+
+  private generateSessionId(): string {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
+}
+
+export function setupWebSocket(server: Server): WebSocketManager {
+  return new WebSocketManager(server);
+}
