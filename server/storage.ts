@@ -158,6 +158,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteGameTable(id: string): Promise<void> {
+    // Delete related records first to avoid foreign key violations
+    
+    // Get the current game if any
+    const table = await this.getGameTable(id);
+    if (table?.currentGameId) {
+      // Delete game participants
+      await db.delete(gameParticipants).where(eq(gameParticipants.gameId, table.currentGameId));
+      
+      // Delete game actions
+      await db.delete(gameActions).where(eq(gameActions.gameId, table.currentGameId));
+      
+      // Delete the game
+      await db.delete(games).where(eq(games.id, table.currentGameId));
+    }
+    
+    // Delete analytics events for this table
+    await db.delete(analyticsEvents).where(eq(analyticsEvents.tableId, id));
+    
+    // Delete chat messages for this table
+    await db.delete(chatMessages).where(eq(chatMessages.tableId, id));
+    
+    // Finally delete the table
     await db.delete(gameTables).where(eq(gameTables.id, id));
   }
 
