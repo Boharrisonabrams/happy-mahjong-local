@@ -42,7 +42,17 @@ export default function Play() {
         description: "Your table has been created successfully!",
       });
       // Redirect to the new table
-      window.location.href = `/table/${data.id}`;
+      console.log('Table created successfully:', data);
+      if (data && data.id) {
+        window.location.href = `/table/${data.id}`;
+      } else {
+        console.error('Table creation response missing ID:', data);
+        toast({
+          title: "Error",
+          description: "Table was created but navigation failed. Please refresh the page.",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
       toast({
