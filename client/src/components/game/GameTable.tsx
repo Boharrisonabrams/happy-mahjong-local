@@ -40,7 +40,7 @@ export default function GameTable() {
 
   // Map seat positions to visual positions with current user always at bottom
   const getVisualPosition = (seatPosition: number) => {
-    if (!gameState.myPlayer) return seatPosition;
+    if (!gameState?.myPlayer?.seatPosition && gameState?.myPlayer?.seatPosition !== 0) return seatPosition;
     
     const myPosition = gameState.myPlayer.seatPosition;
     // Rotate positions so current user is always at visual position 2 (bottom)
@@ -49,8 +49,8 @@ export default function GameTable() {
   };
 
   const renderPlayerPosition = (seatPosition: number) => {
-    const participant = gameState.participants.find(p => p.seatPosition === seatPosition);
-    const playerState = gameState.playerStates[seatPosition];
+    const participant = gameState.participants?.find(p => p.seatPosition === seatPosition);
+    const playerState = gameState.playerStates?.[seatPosition];
     const isCurrentPlayer = gameState.gameState?.currentPlayerIndex === seatPosition;
     const isMyPosition = participant?.userId === gameState.myPlayer?.userId;
     const visualPosition = getVisualPosition(seatPosition);
@@ -219,7 +219,7 @@ export default function GameTable() {
         </div>
 
         {/* Player positions - render all seats but visually positioned relative to current user */}
-        {gameState.participants.length > 0 ? (
+        {gameState.participants && gameState.participants.length > 0 ? (
           gameState.participants.map(p => (
             <div key={`participant-${p.seatPosition}`}>
               {renderPlayerPosition(p.seatPosition)}
@@ -249,7 +249,7 @@ export default function GameTable() {
             {/* Player's tile rack */}
             <div className="lg:col-span-2">
               <TileRack 
-                tiles={gameState.playerStates[gameState.myPlayer.seatPosition]?.rack || []}
+                tiles={gameState.playerStates?.[gameState.myPlayer.seatPosition]?.rack || []}
                 onTileClick={(tile) => {
                   if (gameState.isMyTurn) {
                     actions.discardTile(tile.id);
