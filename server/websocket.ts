@@ -193,6 +193,14 @@ export class WebSocketManager {
         participants.length + 1
       );
 
+      // Add the human player as a participant if they're not already
+      await this.ensurePlayerParticipant(client.userId, table, currentGame);
+
+      // Auto-add bots if table has bot difficulty and needs more players
+      if (table.botDifficulty && table.botDifficulty !== 'none') {
+        await this.autoAddBotsToTable(table, currentGame);
+      }
+
     } catch (error) {
       console.error('Error joining table:', error);
       this.sendToClient(clientId, {
@@ -487,6 +495,167 @@ export class WebSocketManager {
         }
       });
     }, 30000); // 30 seconds
+  }
+
+  private async ensurePlayerParticipant(userId: string, table: any, currentGame: any): Promise<void> {
+    try {
+      // If no current game, we'll create one in autoAddBotsToTable
+      if (!currentGame) return;
+
+      // Check if player is already a participant
+      const participants = await storage.getGameParticipants(currentGame.id);
+      const existingParticipant = participants.find(p => p.userId === userId);
+      
+      if (!existingParticipant) {
+        // Find an empty seat for the player
+        const seatPosition = this.findEmptySeat(participants, table.maxPlayers || 4);
+        if (seatPosition !== -1) {
+          await storage.addGameParticipant({
+            gameId: currentGame.id,
+            userId: userId,
+            botId: null,
+            seatPosition,
+            isBot: false,
+            rackTiles: [],
+            meldedTiles: [],
+            discardedTiles: [],
+            flowers: [],
+            isReady: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error ensuring player participant:', error);
+    }
+  }
+
+  private async autoAddBotsToTable(table: any, currentGame: any): Promise<void> {
+    try {
+      // If no current game, create one
+      if (!currentGame) {
+        const gameData = {
+          tableId: table.id,
+          seed: `${Date.now()}_${Math.random()}`,
+          gameState: { phase: 'setup', currentPlayerIndex: 0, wallCount: 0 }
+        };
+        currentGame = await storage.createGame(gameData);
+        
+        // Update table with current game
+        await storage.updateGameTable(table.id, { 
+          currentGameId: currentGame.id, 
+          status: 'playing' 
+        });
+      }
+
+      // Get current participants
+      const participants = await storage.getGameParticipants(currentGame.id);
+      const humanPlayers = participants.filter(p => !p.isBot);
+      const botPlayers = participants.filter(p => p.isBot);
+      
+      // Calculate how many bots we need (up to max 4 players total)
+      const totalPlayers = participants.length;
+      const maxPlayers = table.maxPlayers || 4;
+      const botsNeeded = Math.max(0, maxPlayers - humanPlayers.length);
+      
+      // Add bots to fill empty seats
+      for (let i = botPlayers.length; i < botsNeeded; i++) {
+        const seatPosition = this.findEmptySeat(participants, maxPlayers);
+        if (seatPosition !== -1) {
+          const botParticipant = await storage.addGameParticipant({
+            gameId: currentGame.id,
+            userId: null,
+            botId: `bot_${table.botDifficulty}_${i + 1}`,
+            seatPosition,
+            isBot: true,
+            rackTiles: [],
+            meldedTiles: [],
+            discardedTiles: [],
+            flowers: [],
+            isReady: true // Bots are always ready
+          });
+
+          // Notify all clients in the table about new bot
+          this.broadcastToTable(table.id, {
+            type: 'player_joined',
+            data: { 
+              participant: botParticipant,
+              isBot: true 
+            }
+          });
+        }
+      }
+
+      // Check if table is now full and start game
+      const updatedParticipants = await storage.getGameParticipants(currentGame.id);
+      if (updatedParticipants.length >= maxPlayers) {
+        await this.startGame(table, currentGame);
+      }
+
+    } catch (error) {
+      console.error('Error auto-adding bots:', error);
+    }
+  }
+
+  private findEmptySeat(participants: any[], maxPlayers: number): number {
+    const occupiedSeats = new Set(participants.map(p => p.seatPosition));
+    for (let i = 0; i < maxPlayers; i++) {
+      if (!occupiedSeats.has(i)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private async startGame(table: any, game: any): Promise<void> {
+    try {
+      // Initialize game with tiles and starting state
+      const fullTileset = gameEngine.generateFullTileset();
+      const shuffledTiles = gameEngine.shuffleTiles(fullTileset);
+      const { playerHands, wall } = gameEngine.dealInitialHands(shuffledTiles);
+      
+      // Update participants with their starting tiles
+      const participants = await storage.getGameParticipants(game.id);
+      for (let i = 0; i < participants.length; i++) {
+        const participant = participants[i];
+        const hand = playerHands[i] || [];
+        
+        await storage.updateGameParticipant(participant.id, {
+          rackTiles: hand
+        });
+      }
+
+      // Update game state
+      const gameState = {
+        phase: 'charleston',
+        currentPlayerIndex: 0,
+        wallCount: wall.length,
+        charlestonPhase: 1
+      };
+
+      await storage.updateGame(game.id, {
+        gameState,
+        wallTiles: wall,
+        status: 'charleston'
+      });
+
+      // Update table status
+      await storage.updateGameTable(table.id, {
+        status: 'playing'
+      });
+
+      // Notify all clients that game has started
+      this.broadcastToTable(table.id, {
+        type: 'game_started',
+        data: {
+          game: { ...game, gameState },
+          participants,
+          gameState
+        }
+      });
+
+    } catch (error) {
+      console.error('Error starting game:', error);
+    }
   }
 
   private generateSessionId(): string {
