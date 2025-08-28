@@ -180,11 +180,30 @@ export function useGame(tableId?: string) {
     }
   });
 
+  // Authenticate WebSocket when user is available
+  useEffect(() => {
+    if (user && isConnected) {
+      sendMessage({ 
+        type: 'authenticate', 
+        data: { userId: user.id } 
+      });
+    }
+  }, [user, isConnected, sendMessage]);
+
   // Game actions
   const actions: GameActions = {
     joinTable: useCallback((tableId: string) => {
-      joinTableMutation.mutate(tableId);
-    }, [joinTableMutation]),
+      if (user && isConnected) {
+        // Ensure authentication first, then join
+        sendMessage({ 
+          type: 'authenticate', 
+          data: { userId: user.id } 
+        });
+        setTimeout(() => {
+          sendMessage({ type: 'join_table', data: { tableId } });
+        }, 100); // Small delay to ensure auth is processed
+      }
+    }, [user, isConnected, sendMessage]),
 
     leaveTable: useCallback(() => {
       leaveTableMutation.mutate();

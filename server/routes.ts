@@ -108,6 +108,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/tables/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const table = await storage.getGameTable(req.params.id);
+      
+      if (!table) {
+        return res.status(404).json({ message: "Table not found" });
+      }
+
+      // Only allow host to delete the table
+      if (table.hostUserId !== userId) {
+        return res.status(403).json({ message: "Only the table host can delete this table" });
+      }
+
+      await storage.deleteGameTable(req.params.id);
+      res.json({ message: "Table deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting table:", error);
+      res.status(500).json({ message: "Failed to delete table" });
+    }
+  });
+
   // Game routes
   app.post('/api/tables/:tableId/games', isAuthenticated, async (req: any, res) => {
     try {

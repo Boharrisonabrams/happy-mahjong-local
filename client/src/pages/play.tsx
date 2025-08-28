@@ -63,6 +63,27 @@ export default function Play() {
     }
   });
 
+  // Delete table mutation
+  const deleteTableMutation = useMutation({
+    mutationFn: async (tableId: string) => {
+      return await apiRequest('DELETE', `/api/tables/${tableId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
+      toast({
+        title: "Table Deleted",
+        description: "Table has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete table. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleCreateTable = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -337,6 +358,19 @@ export default function Play() {
                       ) : (
                         <Button variant="secondary" disabled>
                           Full
+                        </Button>
+                      )}
+                      
+                      {/* Delete button - only show for table host */}
+                      {user && table.hostUserId === user.id && (
+                        <Button 
+                          onClick={() => deleteTableMutation.mutate(table.id)}
+                          variant="destructive"
+                          size="sm"
+                          disabled={deleteTableMutation.isPending}
+                          data-testid={`delete-table-${table.id}`}
+                        >
+                          {deleteTableMutation.isPending ? "Deleting..." : "Delete"}
                         </Button>
                       )}
                     </div>
