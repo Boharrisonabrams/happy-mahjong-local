@@ -38,24 +38,35 @@ export default function GameTable() {
     );
   }
 
-  const renderPlayerPosition = (position: number) => {
-    const participant = gameState.participants.find(p => p.seatPosition === position);
-    const playerState = gameState.playerStates[position];
-    const isCurrentPlayer = gameState.gameState?.currentPlayerIndex === position;
+  // Map seat positions to visual positions with current user always at bottom
+  const getVisualPosition = (seatPosition: number) => {
+    if (!gameState.myPlayer) return seatPosition;
+    
+    const myPosition = gameState.myPlayer.seatPosition;
+    // Rotate positions so current user is always at visual position 2 (bottom)
+    const offset = (seatPosition - myPosition + 4) % 4;
+    return (offset + 2) % 4; // Current player goes to position 2 (bottom)
+  };
+
+  const renderPlayerPosition = (seatPosition: number) => {
+    const participant = gameState.participants.find(p => p.seatPosition === seatPosition);
+    const playerState = gameState.playerStates[seatPosition];
+    const isCurrentPlayer = gameState.gameState?.currentPlayerIndex === seatPosition;
     const isMyPosition = participant?.userId === gameState.myPlayer?.userId;
+    const visualPosition = getVisualPosition(seatPosition);
 
     return (
       <div 
         className={`
           absolute flex flex-col items-center space-y-2 p-3 rounded-lg
-          ${position === 0 ? 'top-4 left-1/2 transform -translate-x-1/2' : ''}
-          ${position === 1 ? 'right-4 top-1/2 transform -translate-y-1/2' : ''}
-          ${position === 2 ? 'bottom-4 left-1/2 transform -translate-x-1/2' : ''}
-          ${position === 3 ? 'left-4 top-1/2 transform -translate-y-1/2' : ''}
+          ${visualPosition === 0 ? 'top-4 left-1/2 transform -translate-x-1/2' : ''}
+          ${visualPosition === 1 ? 'right-4 top-1/2 transform -translate-y-1/2' : ''}
+          ${visualPosition === 2 ? 'bottom-4 left-1/2 transform -translate-x-1/2' : ''}
+          ${visualPosition === 3 ? 'left-4 top-1/2 transform -translate-y-1/2' : ''}
           ${isCurrentPlayer ? 'bg-accent/20 border-2 border-accent' : 'bg-muted/50'}
           ${isMyPosition ? 'ring-2 ring-primary' : ''}
         `}
-        data-testid={`player-position-${position}`}
+        data-testid={`player-position-${seatPosition}`}
       >
         {participant ? (
           <>
@@ -87,7 +98,7 @@ export default function GameTable() {
             {/* Player's exposed melds */}
             <PlayerMelds 
               melds={playerState?.melds || []} 
-              position={position}
+              position={seatPosition}
               isCompact={!isMyPosition}
             />
 
@@ -107,6 +118,7 @@ export default function GameTable() {
               variant="outline" 
               className="mt-2 text-xs"
               onClick={() => actions.joinTable(tableId!)}
+              data-testid={`join-seat-${seatPosition}`}
             >
               Join
             </Button>
@@ -206,8 +218,12 @@ export default function GameTable() {
           </div>
         </div>
 
-        {/* Player positions */}
-        {[0, 1, 2, 3].map(renderPlayerPosition)}
+        {/* Player positions - render all seats but visually positioned relative to current user */}
+        {gameState.participants.length > 0 ? (
+          gameState.participants.map(p => renderPlayerPosition(p.seatPosition))
+        ) : (
+          [0, 1, 2, 3].map(renderPlayerPosition)
+        )}
 
         {/* Discard area - center */}
         <div className="absolute inset-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32">

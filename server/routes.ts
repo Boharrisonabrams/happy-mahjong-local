@@ -61,9 +61,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/tables', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const { seatBotSettings, ...bodyData } = req.body;
+      
+      // Prepare settings with seat-specific bot configurations for single player mode
+      const settings = bodyData.gameMode === 'single-player' && seatBotSettings ? {
+        seatBotSettings
+      } : null;
+      
       const tableData = insertGameTableSchema.parse({
-        ...req.body,
-        hostUserId: userId
+        ...bodyData,
+        hostUserId: userId,
+        settings
       });
 
       // Generate invite code if private
@@ -77,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track analytics
       await analyticsService.trackEvent(
         'table_created',
-        { tableId: table.id, isPrivate: tableData.isPrivate, botDifficulty: tableData.botDifficulty },
+        { tableId: table.id, isPrivate: tableData.isPrivate, gameMode: tableData.gameMode, botDifficulty: tableData.botDifficulty },
         userId,
         req.sessionID
       );

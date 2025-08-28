@@ -561,10 +561,14 @@ export class WebSocketManager {
       for (let i = botPlayers.length; i < botsNeeded; i++) {
         const seatPosition = this.findEmptySeat(participants, maxPlayers);
         if (seatPosition !== -1) {
+          // Get seat-specific bot settings if available
+          const seatBotSettings = table.settings?.seatBotSettings;
+          const botDifficulty = seatBotSettings?.[seatPosition] || table.botDifficulty || 'standard';
+          
           const botParticipant = await storage.addGameParticipant({
             gameId: currentGame.id,
             userId: null,
-            botId: `bot_${table.botDifficulty}_${i + 1}`,
+            botId: `bot_${botDifficulty}_${seatPosition}`,
             seatPosition,
             isBot: true,
             rackTiles: [],

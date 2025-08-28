@@ -64,6 +64,7 @@ export const gameTables = pgTable("game_tables", {
   isPrivate: boolean("is_private").default(false),
   inviteCode: varchar("invite_code").unique(),
   maxPlayers: integer("max_players").default(4),
+  gameMode: varchar("game_mode").default("single-player"), // single-player, multiplayer
   botDifficulty: varchar("bot_difficulty"), // easy, standard, strong
   status: varchar("status").default("waiting"), // waiting, playing, finished
   currentGameId: uuid("current_game_id"),
