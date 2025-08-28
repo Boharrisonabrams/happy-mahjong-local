@@ -64,8 +64,8 @@ export function Footer() {
             <div key={section.title}>
               <h4 className="font-semibold mb-4">{section.title}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                {section.links.map((link) => (
-                  <li key={link.href}>
+                {section.links.map((link, index) => (
+                  <li key={`${section.title}-${index}`}>
                     <Link 
                       href={link.href} 
                       className="hover:text-foreground transition-colors"
@@ -86,9 +86,9 @@ export function Footer() {
           </p>
           
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-            {socialLinks.map((social) => (
+            {socialLinks.map((social, index) => (
               <a
-                key={social.href}
+                key={`social-${index}`}
                 href={social.href}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={social.label}

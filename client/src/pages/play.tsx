@@ -53,11 +53,13 @@ export default function Play() {
     }
   });
 
-  const handleCreateTable = (formData: FormData) => {
+  const handleCreateTable = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get('name') as string,
       isPrivate: formData.get('isPrivate') === 'on',
-      botDifficulty: formData.get('botDifficulty') as string || null,
+      botDifficulty: formData.get('botDifficulty') === 'none' ? null : formData.get('botDifficulty') as string,
     };
     createTableMutation.mutate(data);
   };
@@ -162,7 +164,7 @@ export default function Play() {
                   <DialogTitle>Create New Table</DialogTitle>
                 </DialogHeader>
                 
-                <form action={handleCreateTable} className="space-y-4">
+                <form onSubmit={handleCreateTable} className="space-y-4">
                   <div>
                     <Label htmlFor="name">Table Name</Label>
                     <Input
@@ -186,7 +188,7 @@ export default function Play() {
                         <SelectValue placeholder="Select bot difficulty" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No Bots</SelectItem>
+                        <SelectItem value="none">No Bots</SelectItem>
                         <SelectItem value="easy">Easy Bots</SelectItem>
                         <SelectItem value="standard">Standard Bots</SelectItem>
                         <SelectItem value="strong">Strong Bots</SelectItem>
