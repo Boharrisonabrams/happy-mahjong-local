@@ -537,9 +537,10 @@ export class WebSocketManager {
         const gameData = {
           tableId: table.id,
           seed: `${Date.now()}_${Math.random()}`,
-          gameState: { phase: 'setup', currentPlayerIndex: 0, wallCount: 0 }
+          gameState: { phase: 'setup', currentPlayerIndex: 0, wallCount: 144 }
         };
         currentGame = await storage.createGame(gameData);
+        console.log(`Created new game ${currentGame.id} for table ${table.id}`);
         
         // Update table with current game
         await storage.updateGameTable(table.id, { 
@@ -568,12 +569,16 @@ export class WebSocketManager {
       }
       
       // Add bots to fill empty seats
-      for (let i = botPlayers.length; i < botsNeeded; i++) {
+      console.log(`Need to add ${botsNeeded} bots`);
+      
+      for (let i = 0; i < botsNeeded; i++) {
         const seatPosition = this.findEmptySeat(participants, maxPlayers);
         if (seatPosition !== -1) {
           // Get seat-specific bot settings if available
           const seatBotSettings = table.settings?.seatBotSettings;
           const botDifficulty = seatBotSettings?.[seatPosition] || table.botDifficulty || 'standard';
+          
+          console.log(`Adding ${botDifficulty} bot to seat ${seatPosition}`);
           
           const botParticipant = await storage.addGameParticipant({
             gameId: currentGame.id,
@@ -587,6 +592,9 @@ export class WebSocketManager {
             flowers: [],
             isReady: true // Bots are always ready
           });
+          
+          // Update participants list for next iteration
+          participants.push(botParticipant);
 
           // Notify all clients in the table about new bot
           this.broadcastToTable(table.id, {
@@ -601,8 +609,13 @@ export class WebSocketManager {
 
       // Check if table is now full and start game
       const updatedParticipants = await storage.getGameParticipants(currentGame.id);
+      console.log(`Updated participants after adding bots: ${updatedParticipants.length}/${maxPlayers}`);
+      
       if (updatedParticipants.length >= maxPlayers) {
+        console.log('Starting game with full table');
         await this.startGame(table, currentGame);
+      } else {
+        console.log('Table not full yet, waiting for more players');
       }
 
     } catch (error) {

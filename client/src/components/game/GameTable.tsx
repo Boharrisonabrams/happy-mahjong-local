@@ -78,7 +78,7 @@ export default function GameTable() {
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">
-                {participant.user?.firstName || `Player ${position + 1}`}
+                {participant.user?.firstName || `Player ${seatPosition + 1}`}
                 {isMyPosition && ' (You)'}
               </span>
             </div>
@@ -220,9 +220,17 @@ export default function GameTable() {
 
         {/* Player positions - render all seats but visually positioned relative to current user */}
         {gameState.participants.length > 0 ? (
-          gameState.participants.map(p => renderPlayerPosition(p.seatPosition))
+          gameState.participants.map(p => (
+            <div key={`participant-${p.seatPosition}`}>
+              {renderPlayerPosition(p.seatPosition)}
+            </div>
+          ))
         ) : (
-          [0, 1, 2, 3].map(renderPlayerPosition)
+          [0, 1, 2, 3].map(seatPos => (
+            <div key={`empty-seat-${seatPos}`}>
+              {renderPlayerPosition(seatPos)}
+            </div>
+          ))
         )}
 
         {/* Discard area - center */}

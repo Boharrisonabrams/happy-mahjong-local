@@ -123,7 +123,12 @@ export class GameEngine {
     return shuffled;
   }
 
-  private hashString(str: string): number {
+  private hashString(str: string | undefined): number {
+    // Handle undefined/null seeds
+    if (!str) {
+      str = `${Date.now()}_${Math.random()}`;
+    }
+    
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
