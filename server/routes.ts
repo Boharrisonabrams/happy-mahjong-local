@@ -61,12 +61,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/tables', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { seatBotSettings, ...bodyData } = req.body;
+      const { seatBotSettings, botCount, ...bodyData } = req.body;
       
-      // Prepare settings with seat-specific bot configurations for single player mode
-      const settings = bodyData.gameMode === 'single-player' && seatBotSettings ? {
-        seatBotSettings
-      } : null;
+      // Prepare settings object
+      let settings = null;
+      if (bodyData.gameMode === 'single-player' && seatBotSettings) {
+        settings = { seatBotSettings };
+      } else if (bodyData.gameMode === 'multiplayer' && botCount > 0) {
+        settings = { botCount };
+      }
       
       const tableData = insertGameTableSchema.parse({
         ...bodyData,
@@ -85,7 +88,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track analytics
       await analyticsService.trackEvent(
         'table_created',
-        { tableId: table.id, isPrivate: tableData.isPrivate, gameMode: tableData.gameMode, botDifficulty: tableData.botDifficulty },
+        { 
+          tableId: table.id, 
+          isPrivate: tableData.isPrivate, 
+          gameMode: tableData.gameMode, 
+          botDifficulty: tableData.botDifficulty,
+          botCount: bodyData.gameMode === 'multiplayer' ? botCount : null
+        },
         userId,
         req.sessionID
       );

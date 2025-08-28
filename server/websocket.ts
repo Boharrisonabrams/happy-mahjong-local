@@ -196,8 +196,9 @@ export class WebSocketManager {
       // Add the human player as a participant if they're not already
       await this.ensurePlayerParticipant(client.userId, table, currentGame);
 
-      // Auto-add bots if table has bot difficulty and needs more players
-      if (table.botDifficulty && table.botDifficulty !== 'none') {
+      // Auto-add bots based on table configuration
+      if ((table.gameMode === 'single-player' && table.botDifficulty) || 
+          (table.gameMode === 'multiplayer' && table.settings?.botCount > 0)) {
         await this.autoAddBotsToTable(table, currentGame);
       }
 
@@ -552,10 +553,19 @@ export class WebSocketManager {
       const humanPlayers = participants.filter(p => !p.isBot);
       const botPlayers = participants.filter(p => p.isBot);
       
-      // Calculate how many bots we need (up to max 4 players total)
-      const totalPlayers = participants.length;
+      // Calculate how many bots we need based on table configuration
       const maxPlayers = table.maxPlayers || 4;
-      const botsNeeded = Math.max(0, maxPlayers - humanPlayers.length);
+      let botsNeeded = 0;
+      
+      if (table.gameMode === 'single-player') {
+        // Single player: fill all remaining seats with bots
+        botsNeeded = Math.max(0, maxPlayers - humanPlayers.length);
+      } else if (table.gameMode === 'multiplayer' && table.settings?.botCount) {
+        // Multiplayer: only add the specified number of bots
+        const targetBotCount = table.settings.botCount;
+        const currentBots = participants.filter(p => p.isBot).length;
+        botsNeeded = Math.max(0, targetBotCount - currentBots);
+      }
       
       // Add bots to fill empty seats
       for (let i = botPlayers.length; i < botsNeeded; i++) {

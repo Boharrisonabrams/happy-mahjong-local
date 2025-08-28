@@ -70,10 +70,7 @@ export default function PlayPage() {
       seatBotSettings?: any;
     }) => {
       console.log('Table creation data:', data);
-      const response = await apiRequest('/api/tables', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/tables', data);
       
       if (!response.ok) {
         const error = await response.text();
@@ -116,19 +113,27 @@ export default function PlayPage() {
     const gameMode = formData.get('gameMode') as string;
     
     let seatBotSettings = null;
+    let botCount = 0;
+    let botDifficulty = null;
+    
     if (gameMode === 'single-player') {
       seatBotSettings = {
         1: formData.get('eastBot') as string,   // East position
         2: formData.get('northBot') as string,  // North position  
         3: formData.get('westBot') as string,   // West position
       };
+      botDifficulty = 'standard'; // Default for single player
+    } else if (gameMode === 'multiplayer') {
+      botCount = parseInt(formData.get('botCount') as string) || 0;
+      botDifficulty = botCount > 0 ? formData.get('multiplayerBotDifficulty') as string : null;
     }
     
     const data = {
       name: formData.get('name') as string,
       isPrivate: formData.get('isPrivate') === 'on',
       gameMode: gameMode,
-      botDifficulty: gameMode === 'single-player' ? 'standard' : null, // Default for fallback
+      botDifficulty: botDifficulty,
+      botCount: botCount,
       seatBotSettings: seatBotSettings,
     };
     createTableMutation.mutate(data);
@@ -304,6 +309,38 @@ export default function PlayPage() {
                                   You (South)
                                 </div>
                               </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedGameMode === 'multiplayer' && (
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="botCount">Number of Bots</Label>
+                              <Select name="botCount" defaultValue="0">
+                                <SelectTrigger data-testid="bot-count-select">
+                                  <SelectValue placeholder="Select number of bots" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0">No Bots (4 human players)</SelectItem>
+                                  <SelectItem value="1">1 Bot (3 humans + 1 bot)</SelectItem>
+                                  <SelectItem value="2">2 Bots (2 humans + 2 bots)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <Label htmlFor="multiplayerBotDifficulty">Bot Difficulty</Label>
+                              <Select name="multiplayerBotDifficulty" defaultValue="standard">
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select bot difficulty" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="easy">Easy</SelectItem>
+                                  <SelectItem value="standard">Standard</SelectItem>
+                                  <SelectItem value="strong">Strong</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                         )}
