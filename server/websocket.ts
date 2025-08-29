@@ -546,7 +546,20 @@ export class WebSocketManager {
       const gameState = typeof game.gameState === 'string' ? JSON.parse(game.gameState) : game.gameState;
       
       // Find receiving player (Right pass: +1, Across: +2, Left: +3)
-      const passDirection = gameState.charleston?.currentPass || 'right';
+      // Get pass direction based on proper Charleston flow
+      const getCharlestonDirection = (phase: number): string => {
+        switch (phase) {
+          case 1: return 'right';   // Round 1: Right
+          case 2: return 'across';  // Round 1: Across  
+          case 3: return 'left';    // Round 1: Left
+          case 4: return 'left';    // Round 2: Left
+          case 5: return 'across';  // Round 2: Across
+          case 6: return 'right';   // Round 2: Right
+          case 7: return 'across';  // Courtesy: Across
+          default: return 'right';
+        }
+      };
+      const passDirection = getCharlestonDirection(gameState.charlestonPhase || 1);
       const directionMap: Record<string, number> = { 'right': 1, 'across': 2, 'left': 3 };
       const receiverIndex = (currentPlayer.seatPosition + (directionMap[passDirection] || 1)) % 4;
       const receivingPlayer = participants.find(p => p.seatPosition === receiverIndex);

@@ -304,10 +304,25 @@ export default function GameTable() {
                   <TileRack 
                     tiles={receivedTilesFromCharleston}
                     onTileClick={(tile) => {
-                      // Move tile from received area to main rack
+                      // Move tile from received area to main rack by adding it to myTiles
+                      // This simulates moving the tile down to the main rack
                       setReceivedTilesFromCharleston(prev => prev.filter(t => t.id !== tile.id));
                       // Remove from selection if it was selected
                       setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
+                    }}
+                    onTileSelect={(tile) => {
+                      // Allow selecting tiles directly from the received area
+                      if (isCharlestonPhase) {
+                        setSelectedTilesForCharleston(prev => {
+                          const isSelected = prev.some(t => t.id === tile.id);
+                          if (isSelected) {
+                            return prev.filter(t => t.id !== tile.id);
+                          } else if (prev.length < 3) {
+                            return [...prev, tile];
+                          }
+                          return prev;
+                        });
+                      }
                     }}
                     canInteract={true}
                     selectedTiles={selectedTilesForCharleston.filter(t => 
@@ -324,12 +339,12 @@ export default function GameTable() {
                   <h4 className="text-sm font-medium">Your Tiles</h4>
                   {isCharlestonPhase && (
                     <div className="text-xs text-muted-foreground">
-                      Double-click received tiles above to move them here
+                      Click received tiles above to move them here
                     </div>
                   )}
                 </div>
                 <TileRack 
-                  tiles={[...myTiles, ...receivedTilesFromCharleston]}
+                  tiles={myTiles}
                   onTileClick={(tile) => {
                     if (!isCharlestonPhase && gameState.isMyTurn) {
                       actions.discardTile(tile.id);
@@ -354,7 +369,7 @@ export default function GameTable() {
                   }}
                   canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
                   selectedTiles={selectedTilesForCharleston.filter(t => 
-                    [...myTiles, ...receivedTilesFromCharleston].some(mt => mt.id === t.id)
+                    myTiles.some(mt => mt.id === t.id)
                   )}
                   maxSelection={3}
                 />
@@ -369,8 +384,13 @@ export default function GameTable() {
                   switch (action) {
                     case 'charleston_confirm':
                       if (selectedTilesForCharleston.length === 3) {
-                        actions.passTiles(selectedTilesForCharleston);
-                        setSelectedTilesForCharleston([]);
+                        // Filter out jokers - no jokers may be passed per Charleston rules
+                        const nonJokerTiles = selectedTilesForCharleston.filter(tile => !tile.isJoker);
+                        if (nonJokerTiles.length === 3) {
+                          actions.charlestonPass(nonJokerTiles);
+                          setSelectedTilesForCharleston([]);
+                          setReceivedTilesFromCharleston([]); // Clear received tiles after pass
+                        }
                       }
                       break;
                     case 'draw':

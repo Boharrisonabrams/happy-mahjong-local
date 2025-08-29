@@ -381,8 +381,12 @@ export interface GameStateInfo {
   lastDiscardedTile?: TileInfo;
   lastDiscardedBySeat?: number;
   wallCount: number;
-  charlestonPhase?: number; // 1, 2, 3, or 4 (opposite)
+  charlestonPhase?: number; // 1-7: Round1(Right,Across,Left), Stop, Round2(Left,Across,Right), Courtesy
+  charlestonRound?: 1 | 2 | 'courtesy'; // Track which round we're in
   charlestonPasses?: { [seatPosition: number]: TileInfo[] };
+  charlestonStopped?: boolean; // Whether any player called "Stop" after Round 1
+  charlestonConfirmations?: { [seatPosition: number]: boolean }; // Track player confirmations
+  charlestonDirection?: 'right' | 'across' | 'left'; // Current pass direction
 }
 
 export interface PlayerStateInfo {

@@ -1,0 +1,105 @@
+1. Charleston Flow
+
+The Charleston is a series of passes before play begins.
+
+Round 1 (mandatory):
+
+Pass 3 tiles to the right
+
+Pass 3 tiles across
+
+Pass 3 tiles to the left
+
+Decision point: after Round 1, any player may call “Stop”.
+
+If Stopped → move directly to Courtesy Pass.
+
+If Continued → proceed to Round 2.
+
+Round 2 (optional, if not stopped):
+
+Pass 3 tiles to the left
+
+Pass 3 tiles across
+
+Pass 3 tiles to the right
+
+Courtesy Pass (final, optional):
+
+Across only.
+
+Each across pair may exchange 0–3 tiles by agreement.
+
+2. Rules for Passing
+
+Standard passes = exactly 3 tiles.
+
+Courtesy pass = 0–3 tiles.
+
+No jokers may be passed (they must remain in the rack).
+
+All players select tiles simultaneously in each phase.
+
+Passes are resolved simultaneously: everyone gives, then everyone receives.
+
+3. Passing Directions
+
+Define player order clockwise: East → South → West → North → East.
+
+Right = clockwise neighbor.
+
+Left = counter-clockwise neighbor.
+
+Across = the player opposite (two seats away).
+
+4. UI / Experience Requirements
+
+Selecting tiles to pass:
+
+Players must be able to lift tiles above their rack to mark them as selected.
+
+Pass button is disabled until exactly 3 are chosen (except courtesy).
+
+Receiving tiles:
+
+Incoming tiles appear above the rack (floating).
+
+Player must place them into the rack before proceeding.
+
+Allow reordering: players can slide tiles left/right or up/down to position them.
+
+Next pass cycle:
+
+Once placed, the player again selects 3 new tiles, lifts them above, and passes according to the current direction.
+
+5. Control & State
+
+Game State Machine should track:
+
+Current pass phase (Right1, Across1, Left1, etc.).
+
+Who has confirmed their selection.
+
+Whether “Stop” was called.
+
+Simultaneity:
+
+The game collects all players’ choices first.
+
+Only after all confirm are tiles removed and redistributed.
+
+Error Prevention:
+
+Disallow confirming with the wrong number of tiles.
+
+Disallow passing jokers.
+
+Prevent early advancement if not all players are ready.
+
+6. Special Cases
+
+Stop after Round 1: skip Round 2.
+
+Courtesy Pass: must be agreed across the table; each side chooses 0–3 tiles.
+
+If one side passes fewer than 3 in courtesy, the other side must match that number. (Some house rules vary here — confirm which you want.)

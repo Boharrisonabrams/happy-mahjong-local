@@ -163,13 +163,18 @@ export class GameEngine {
 
   // Charleston phase logic
   getCharlestonPasses(playerHands: TileInfo[][], phase: number): { [seatPosition: number]: TileInfo[] } {
-    // In Charleston, players pass 3 tiles
-    // Phase 1: Right, Phase 2: Across, Phase 3: Left, Phase 4: Opposite (optional)
+    // Charleston phases follow proper sequence:
+    // Round 1: Phase 1=Right, Phase 2=Across, Phase 3=Left
+    // Decision point after Round 1 (Stop or Continue)
+    // Round 2: Phase 4=Left, Phase 5=Across, Phase 6=Right  
+    // Courtesy: Phase 7=Across (0-3 tiles)
     const passes: { [seatPosition: number]: TileInfo[] } = {};
     
     for (let seat = 0; seat < 4; seat++) {
       // For simplicity, pass the first 3 tiles (in real game, player selects)
-      passes[seat] = playerHands[seat].slice(0, 3);
+      // TODO: Filter out jokers - no jokers may be passed
+      const nonJokerTiles = playerHands[seat].filter(tile => !tile.isJoker);
+      passes[seat] = nonJokerTiles.slice(0, Math.min(3, nonJokerTiles.length));
     }
     
     return passes;
@@ -193,21 +198,33 @@ export class GameEngine {
       }
     }
 
-    // Add received tiles to each player
+    // Add received tiles to each player based on proper Charleston flow
     for (let seat = 0; seat < 4; seat++) {
       let receivedFrom: number;
       
       switch (phase) {
-        case 1: // Right pass - receive from left
+        case 1: // Round 1: Right pass - receive from left
           receivedFrom = (seat + 3) % 4;
           break;
-        case 2: // Across pass - receive from across
+        case 2: // Round 1: Across pass - receive from across
           receivedFrom = (seat + 2) % 4;
           break;
-        case 3: // Left pass - receive from right
+        case 3: // Round 1: Left pass - receive from right
           receivedFrom = (seat + 1) % 4;
           break;
-        default: // Opposite pass
+        case 4: // Round 2: Left pass - receive from right
+          receivedFrom = (seat + 1) % 4;
+          break;
+        case 5: // Round 2: Across pass - receive from across
+          receivedFrom = (seat + 2) % 4;
+          break;
+        case 6: // Round 2: Right pass - receive from left
+          receivedFrom = (seat + 3) % 4;
+          break;
+        case 7: // Courtesy: Across pass - receive from across
+          receivedFrom = (seat + 2) % 4;
+          break;
+        default:
           receivedFrom = (seat + 2) % 4;
           break;
       }
