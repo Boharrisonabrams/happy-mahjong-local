@@ -319,10 +319,13 @@ export default function GameTable() {
                   <TileRack 
                     tiles={exposedRack}
                     onTileClick={(tile) => {
-                      // Move tile from exposed rack to main rack
-                      setExposedRack(prev => prev.filter(t => t.id !== tile.id));
-                      // Remove from Charleston selection if it was selected
-                      setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
+                      // Only move tile back if it's a selected tile (not a received tile)
+                      const isSelectedTile = selectedTilesForCharleston.some(t => t.id === tile.id);
+                      if (isSelectedTile) {
+                        // Move tile from exposed rack back to main rack
+                        setExposedRack(prev => prev.filter(t => t.id !== tile.id));
+                        setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
+                      }
                     }}
                     onTileSelect={(tile) => {
                       // Allow selecting tiles for Charleston from exposed rack
