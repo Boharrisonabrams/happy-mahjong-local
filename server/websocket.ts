@@ -139,17 +139,26 @@ export class WebSocketManager {
   }
 
   private async handleAuthentication(clientId: string, data: any): Promise<void> {
+    console.log('=== HANDLE AUTHENTICATION ===');
+    console.log('Client ID:', clientId);
+    console.log('Data:', data);
+    
     const client = this.clients.get(clientId);
-    if (!client) return;
+    if (!client) {
+      console.log('No client found during auth');
+      return;
+    }
 
     // In a real implementation, you'd validate the auth token
     // For now, we'll use the provided userId
     client.userId = data.userId;
+    console.log('Set client.userId to:', client.userId);
 
     this.sendToClient(clientId, {
       type: 'authenticated',
       data: { userId: data.userId }
     });
+    console.log('Sent authenticated response');
   }
 
   private async handleJoinTable(clientId: string, data: any): Promise<void> {
@@ -158,10 +167,15 @@ export class WebSocketManager {
     console.log('Data:', data);
     
     const client = this.clients.get(clientId);
-    if (!client || !client.userId) {
-      console.log('No client or no userId');
+    if (!client) {
+      console.log('No client found for join_table:', clientId);
       return;
     }
+    if (!client.userId) {
+      console.log('No userId set for client:', clientId, 'client exists:', !!client);
+      return;
+    }
+    console.log('Auth check passed - client.userId:', client.userId);
 
     const { tableId } = data;
     console.log('User', client.userId, 'joining table', tableId);
