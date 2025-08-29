@@ -651,10 +651,26 @@ export class WebSocketManager {
     try {
       // If no current game, create one
       if (!currentGame) {
+        // Create proper game state with players array
         const gameData = {
           tableId: table.id,
           seed: `${Date.now()}_${Math.random()}`,
-          gameState: { phase: 'setup', currentPlayerIndex: 0, wallCount: 144 }
+          gameState: { 
+            phase: 'charleston',
+            currentPlayerIndex: 0, 
+            wallCount: 144,
+            players: [
+              { hand: [], discarded: [], melded: [], flowers: [] },
+              { hand: [], discarded: [], melded: [], flowers: [] },
+              { hand: [], discarded: [], melded: [], flowers: [] },
+              { hand: [], discarded: [], melded: [], flowers: [] }
+            ],
+            charleston: {
+              currentPass: 'right',
+              passesCompleted: 0,
+              phase: 'passing'
+            }
+          }
         };
         currentGame = await storage.createGame(gameData);
         
@@ -765,12 +781,22 @@ export class WebSocketManager {
         });
       }
 
-      // Update game state
+      // Update game state with proper players array
       const gameState = {
         phase: 'charleston',
         currentPlayerIndex: 0,
         wallCount: wall.length,
-        charlestonPhase: 1
+        players: [
+          { hand: playerHands[0] || [], discarded: [], melded: [], flowers: [] },
+          { hand: playerHands[1] || [], discarded: [], melded: [], flowers: [] },
+          { hand: playerHands[2] || [], discarded: [], melded: [], flowers: [] },
+          { hand: playerHands[3] || [], discarded: [], melded: [], flowers: [] }
+        ],
+        charleston: {
+          currentPass: 'right',
+          passesCompleted: 0,
+          phase: 'passing'
+        }
       };
 
       await storage.updateGame(game.id, {
