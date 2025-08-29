@@ -388,10 +388,15 @@ export default function GameTable() {
                         // Filter out jokers - no jokers may be passed per Charleston rules
                         const nonJokerTiles = selectedTilesForCharleston.filter(tile => !tile.isJoker);
                         if (nonJokerTiles.length === 3) {
-                          actions.charlestonPass(nonJokerTiles);
+                          console.log('Charleston pass: Sending tiles to server:', nonJokerTiles);
+                          actions.passTiles(nonJokerTiles);
                           setSelectedTilesForCharleston([]);
                           setReceivedTilesFromCharleston([]); // Clear received tiles after pass
+                        } else {
+                          console.log('Cannot pass jokers during Charleston');
                         }
+                      } else {
+                        console.log('Must select exactly 3 tiles for Charleston pass');
                       }
                       break;
                     case 'draw':
