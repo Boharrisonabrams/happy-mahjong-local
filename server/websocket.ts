@@ -540,7 +540,6 @@ export class WebSocketManager {
           gameState: { phase: 'setup', currentPlayerIndex: 0, wallCount: 144 }
         };
         currentGame = await storage.createGame(gameData);
-        console.log(`Created new game ${currentGame.id} for table ${table.id}`);
         
         // Update table with current game
         await storage.updateGameTable(table.id, { 
@@ -574,16 +573,12 @@ export class WebSocketManager {
       }
       
       // Add bots to fill empty seats
-      console.log(`Need to add ${botsNeeded} bots`);
-      
       for (let i = 0; i < botsNeeded; i++) {
         const seatPosition = this.findEmptySeat(participants, maxPlayers);
         if (seatPosition !== -1) {
           // Get seat-specific bot settings if available
           const seatBotSettings = table.settings?.seatBotSettings;
           const botDifficulty = seatBotSettings?.[seatPosition] || table.botDifficulty || 'standard';
-          
-          console.log(`Adding ${botDifficulty} bot to seat ${seatPosition}`);
           
           const botParticipant = await storage.addGameParticipant({
             gameId: currentGame.id,
@@ -614,13 +609,9 @@ export class WebSocketManager {
 
       // Check if table is now full and start game
       const updatedParticipants = await storage.getGameParticipants(currentGame.id);
-      console.log(`Updated participants after adding bots: ${updatedParticipants.length}/${maxPlayers}`);
       
       if (updatedParticipants.length >= maxPlayers) {
-        console.log('Starting game with full table');
         await this.startGame(table, currentGame);
-      } else {
-        console.log('Table not full yet, waiting for more players');
       }
 
     } catch (error) {
@@ -640,28 +631,17 @@ export class WebSocketManager {
 
   private async startGame(table: any, game: any): Promise<void> {
     try {
-      console.log('=== STARTING GAME ===');
-      console.log('Starting game with seed:', game.seed);
-      
       // Initialize game with tiles and starting state
       const fullTileset = gameEngine.generateFullTileset();
-      console.log('Generated tileset with', fullTileset.length, 'tiles');
-      
       const shuffledTiles = gameEngine.shuffleTiles(fullTileset, game.seed);
-      console.log('Shuffled tiles');
-      
       const { playerHands, wall } = gameEngine.dealInitialHands(shuffledTiles);
-      console.log('Dealt hands - playerHands:', playerHands.map(h => h.length), 'wall:', wall.length);
       
       // Update participants with their starting tiles
       const participants = await storage.getGameParticipants(game.id);
-      console.log('Found participants:', participants.map(p => ({ id: p.id, seatPosition: p.seatPosition, isBot: p.isBot })));
       
       for (let i = 0; i < participants.length; i++) {
         const participant = participants[i];
         const hand = playerHands[i] || [];
-        
-        console.log(`Updating participant ${participant.id} (seat ${participant.seatPosition}) with ${hand.length} tiles`);
         
         await storage.updateGameParticipant(participant.id, {
           rackTiles: hand
@@ -689,11 +669,6 @@ export class WebSocketManager {
 
       // Get updated participants with tiles
       const updatedParticipants = await storage.getGameParticipants(game.id);
-      console.log('Updated participants with tiles:', updatedParticipants.map(p => ({ 
-        id: p.id, 
-        seatPosition: p.seatPosition, 
-        tilesCount: p.rackTiles?.length || 0 
-      })));
       
       // Create playerStates from participants
       const playerStates: { [key: number]: any } = {};
@@ -706,13 +681,8 @@ export class WebSocketManager {
         };
       });
       
-      console.log('Created playerStates:', Object.keys(playerStates).map(key => ({
-        seat: key,
-        rackSize: playerStates[key].rack.length
-      })));
-      
       // Notify all clients that game has started
-      const message = {
+      this.broadcastToTable(table.id, {
         type: 'game_started',
         data: {
           table,
@@ -721,15 +691,10 @@ export class WebSocketManager {
           playerStates,
           gameState
         }
-      };
-      
-      console.log('Broadcasting game_started message with playerStates keys:', Object.keys(playerStates));
-      this.broadcastToTable(table.id, message);
+      });
 
     } catch (error) {
-      console.error('=== ERROR STARTING GAME ===');
       console.error('Error starting game:', error);
-      console.error('Stack trace:', error.stack);
     }
   }
 

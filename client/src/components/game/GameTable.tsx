@@ -10,10 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Wifi, WifiOff, Users, MessageSquare } from "lucide-react";
+import { useState } from "react";
+import type { TileInfo } from "@shared/schema";
 
 export default function GameTable() {
   const { id: tableId } = useParams<{ id: string }>();
   const { gameState, actions, isLoading, isConnected } = useGame(tableId);
+  
+  // Charleston state management
+  const [selectedTilesForCharleston, setSelectedTilesForCharleston] = useState<TileInfo[]>([]);
+  
+  const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
+  const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition]?.rack || [];
 
   if (isLoading) {
     return (
@@ -254,15 +262,28 @@ export default function GameTable() {
             {/* Player's tile rack */}
             <div className="lg:col-span-2">
               <TileRack 
-                tiles={gameState.playerStates?.[gameState.myPlayer.seatPosition]?.rack || []}
+                tiles={myTiles}
                 onTileClick={(tile) => {
-                  if (gameState.isMyTurn) {
+                  if (!isCharlestonPhase && gameState.isMyTurn) {
                     actions.discardTile(tile.id);
                   }
                 }}
-                canInteract={gameState.isMyTurn}
-                selectedTiles={[]}
-                onTileSelect={() => {}}
+                onTileSelect={(tile) => {
+                  if (isCharlestonPhase) {
+                    setSelectedTilesForCharleston(prev => {
+                      const isSelected = prev.some(t => t.id === tile.id);
+                      if (isSelected) {
+                        return prev.filter(t => t.id !== tile.id);
+                      } else if (prev.length < 3) {
+                        return [...prev, tile];
+                      }
+                      return prev;
+                    });
+                  }
+                }}
+                canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
+                selectedTiles={isCharlestonPhase ? selectedTilesForCharleston : []}
+                maxSelection={3}
               />
             </div>
 
@@ -272,6 +293,12 @@ export default function GameTable() {
                 gameState={gameState}
                 onAction={(action, data) => {
                   switch (action) {
+                    case 'charleston_confirm':
+                      if (selectedTilesForCharleston.length === 3) {
+                        actions.passTiles(selectedTilesForCharleston);
+                        setSelectedTilesForCharleston([]);
+                      }
+                      break;
                     case 'draw':
                       actions.drawTile();
                       break;
