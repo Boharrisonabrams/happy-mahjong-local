@@ -548,22 +548,6 @@ export class WebSocketManager {
     try {
       console.log('Processing Charleston pass for user', client.userId, 'with tiles:', data.tiles);
       
-      // VALIDATE TILE COUNT BASED ON PHASE
-      const currentPhase = gameState.charlestonPhase || 1;
-      if (currentPhase === 7) {
-        // Courtesy pass: 0-3 tiles allowed
-        if (data.tiles.length > 3) {
-          console.log('Courtesy pass: Too many tiles');
-          return;
-        }
-      } else {
-        // Regular passes: exactly 3 tiles required
-        if (data.tiles.length !== 3) {
-          console.log('Regular Charleston: Must pass exactly 3 tiles');
-          return;
-        }
-      }
-      
       // Get current game
       const table = await storage.getGameTable(client.tableId);
       if (!table || !table.currentGameId) {
@@ -586,6 +570,22 @@ export class WebSocketManager {
 
       // Parse current game state
       const gameState = typeof game.gameState === 'string' ? JSON.parse(game.gameState) : game.gameState;
+      
+      // VALIDATE TILE COUNT BASED ON PHASE
+      const currentPhase = gameState.charlestonPhase || 1;
+      if (currentPhase === 7) {
+        // Courtesy pass: 0-3 tiles allowed
+        if (data.tiles.length > 3) {
+          console.log('Courtesy pass: Too many tiles');
+          return;
+        }
+      } else {
+        // Regular passes: exactly 3 tiles required
+        if (data.tiles.length !== 3) {
+          console.log('Regular Charleston: Must pass exactly 3 tiles');
+          return;
+        }
+      }
       
       // Find receiving player (Right pass: +1, Across: +2, Left: +3)
       // Get pass direction based on proper Charleston flow
