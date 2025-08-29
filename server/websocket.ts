@@ -440,9 +440,10 @@ export class WebSocketManager {
     }
   }
 
-  private async processBotCharlestonPasses(participants: any[], gameState: any, passDirection: string): Promise<void> {
+  private async processBotCharlestonPasses(participants: any[], gameState: any, passDirection: string): Promise<{ [playerSeat: number]: any[] }> {
     console.log('=== PROCESSING BOT CHARLESTON PASSES ===');
     const directionMap: Record<string, number> = { 'right': 1, 'across': 2, 'left': 3 };
+    const receivedTilesInfo: { [playerSeat: number]: any[] } = {};
     
     // Process all bots
     for (const participant of participants) {
@@ -484,6 +485,12 @@ export class WebSocketManager {
       const receiverIndex = (participant.seatPosition + (directionMap[passDirection] || 1)) % 4;
       const receivingHand = gameState.players[receiverIndex].hand;
       
+      // Track which tiles this receiver gets
+      if (!receivedTilesInfo[receiverIndex]) {
+        receivedTilesInfo[receiverIndex] = [];
+      }
+      receivedTilesInfo[receiverIndex].push(...tilesToPass);
+      
       // Remove tiles from bot's hand
       tilesToPass.forEach((tile: any) => {
         const index = botHand.findIndex((h: any) => h.id === tile.id);
@@ -497,6 +504,8 @@ export class WebSocketManager {
       
       console.log(`Bot Charleston: ${participant.seatPosition} → ${receiverIndex} (${passDirection})`);
     }
+    
+    return receivedTilesInfo;
   }
 
   private async handleCharlestonPass(clientId: string, data: any): Promise<void> {
@@ -567,13 +576,13 @@ export class WebSocketManager {
       console.log(`Transferred ${data.tiles.length} tiles from player ${currentPlayer.seatPosition} to ${receivingPlayer.seatPosition}`);
 
       // AUTO-COMPLETE CHARLESTON: Trigger bot passes for this round
-      await this.processBotCharlestonPasses(participants, gameState, passDirection);
+      const receivedTilesInfo = await this.processBotCharlestonPasses(participants, gameState, passDirection);
 
       // Update game state
       await storage.updateGame(game.id, {
         gameState: JSON.stringify(gameState)
       });
-
+      
       // Broadcast updated game state to all players
       this.broadcastToTable(client.tableId, {
         type: 'game_state_updated',
@@ -583,7 +592,8 @@ export class WebSocketManager {
             passComplete: true,
             from: currentPlayer.seatPosition,
             to: receivingPlayer.seatPosition,
-            tiles: data.tiles.length
+            tiles: data.tiles.length,
+            receivedTiles: receivedTilesInfo[currentPlayer.seatPosition] || []
           }
         }
       });

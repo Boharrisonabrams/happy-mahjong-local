@@ -15,6 +15,11 @@ export interface GameState {
   myPlayer?: GameParticipant;
   isConnected: boolean;
   error?: string;
+  charlestonInfo?: {
+    passComplete?: boolean;
+    receivedTiles?: any[];
+    [key: string]: any;
+  };
 }
 
 export interface GameActions {

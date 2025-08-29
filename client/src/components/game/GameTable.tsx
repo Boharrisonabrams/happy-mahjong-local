@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Wifi, WifiOff, Users, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import React from "react";
 import type { TileInfo } from "@shared/schema";
 
 // Bot name mapping
@@ -25,9 +26,17 @@ export default function GameTable() {
   
   // Charleston state management
   const [selectedTilesForCharleston, setSelectedTilesForCharleston] = useState<TileInfo[]>([]);
+  const [receivedTilesFromCharleston, setReceivedTilesFromCharleston] = useState<TileInfo[]>([]);
   
   const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
-  const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition]?.rack || [];
+  const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition || 0]?.rack || [];
+  
+  // Update received tiles when Charleston info changes
+  React.useEffect(() => {
+    if (gameState.charlestonInfo?.passComplete && gameState.charlestonInfo?.receivedTiles) {
+      setReceivedTilesFromCharleston(gameState.charlestonInfo.receivedTiles);
+    }
+  }, [gameState.charlestonInfo]);
 
   if (isLoading) {
     return (
@@ -279,8 +288,37 @@ export default function GameTable() {
       {gameState.myPlayer && (
         <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t p-4">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Player's tile rack */}
-            <div className="lg:col-span-2">
+            {/* Player's tile rack area */}
+            <div className="lg:col-span-2 space-y-3">
+              {/* Charleston received tiles area */}
+              {isCharlestonPhase && receivedTilesFromCharleston.length > 0 && (
+                <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+                  <h4 className="text-sm font-medium mb-2 text-yellow-800 dark:text-yellow-200">
+                    Received Tiles (from previous player)
+                  </h4>
+                  <TileRack 
+                    tiles={receivedTilesFromCharleston}
+                    onTileClick={(tile) => {
+                      setSelectedTilesForCharleston(prev => {
+                        const isSelected = prev.some(t => t.id === tile.id);
+                        if (isSelected) {
+                          return prev.filter(t => t.id !== tile.id);
+                        } else if (prev.length < 3) {
+                          return [...prev, tile];
+                        }
+                        return prev;
+                      });
+                    }}
+                    canInteract={true}
+                    selectedTiles={selectedTilesForCharleston.filter(t => 
+                      receivedTilesFromCharleston.some(rt => rt.id === t.id)
+                    )}
+                    maxSelection={3}
+                  />
+                </div>
+              )}
+
+              {/* Main tile rack */}
               <TileRack 
                 tiles={myTiles}
                 onTileClick={(tile) => {
@@ -302,7 +340,9 @@ export default function GameTable() {
                   }
                 }}
                 canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
-                selectedTiles={isCharlestonPhase ? selectedTilesForCharleston : []}
+                selectedTiles={selectedTilesForCharleston.filter(t => 
+                  myTiles.some(mt => mt.id === t.id)
+                )}
                 maxSelection={3}
               />
             </div>
