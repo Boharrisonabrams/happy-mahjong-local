@@ -39,9 +39,16 @@ export class WebSocketManager {
   }
 
   private setupWebSocket(): void {
+    console.log('=== WEBSOCKET SERVER STARTING ===');
+    console.log('WebSocket server listening on port...');
+    
     this.wss.on('connection', (ws: WebSocket, req: any) => {
+      console.log('=== NEW WEBSOCKET CONNECTION ===');
+      console.log('Connection from:', req.socket.remoteAddress);
+      
       const sessionId = this.generateSessionId();
       const clientId = sessionId;
+      console.log('Assigned client ID:', clientId);
 
       const client: ClientConnection = {
         ws,

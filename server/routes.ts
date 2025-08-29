@@ -90,9 +90,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'table_created',
         { 
           tableId: table.id, 
-          isPrivate: tableData.isPrivate, 
+          isPrivate: !!tableData.isPrivate, 
           gameMode: tableData.gameMode, 
-          botDifficulty: tableData.botDifficulty,
+          botDifficulty: tableData.botDifficulty || '',
           botCount: bodyData.gameMode === 'multiplayer' ? botCount : null
         },
         userId,
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track analytics
       await analyticsService.trackEvent(
         'hand_started',
-        { gameId: game.id, handNumber: game.gameNumber },
+        { gameId: game.id, handNumber: game.gameNumber || 0 },
         userId,
         req.sessionID,
         tableId,
@@ -477,7 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const [key, value] of Object.entries(updates)) {
         await analyticsService.trackEvent(
           'settings_changed',
-          { settingName: key, newValue: value },
+          { settingName: key, oldValue: null, newValue: value },
           userId,
           req.sessionID
         );
