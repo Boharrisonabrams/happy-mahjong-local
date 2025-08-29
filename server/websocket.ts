@@ -549,13 +549,13 @@ export class WebSocketManager {
 
   private getCharlestonPhaseName(phase: number): string {
     switch (phase) {
-      case 1: return 'Right Pass';
-      case 2: return 'Across Pass';  
-      case 3: return 'Left Pass';
-      case 4: return 'Round 2: Left Pass';
-      case 5: return 'Round 2: Across Pass';
-      case 6: return 'Round 2: Right Pass';
-      case 7: return 'Courtesy Pass (0-3 tiles)';
+      case 1: return 'Round 1 Phase 1: Pass to East (Right)';
+      case 2: return 'Round 1 Phase 2: Pass to North (Across)';  
+      case 3: return 'Round 1 Phase 3: Pass to West (Left)';
+      case 4: return 'Round 2 Phase 1: Pass to West (Left)';
+      case 5: return 'Round 2 Phase 2: Pass to North (Across)';
+      case 6: return 'Round 2 Phase 3: Pass to East (Right)';
+      case 7: return 'Courtesy Pass: Pass to North (0-3 tiles)';
       default: return 'Charleston Phase';
     }
   }
@@ -753,6 +753,23 @@ export class WebSocketManager {
         console.log('🎭 Round 2 complete. Moving to Courtesy pass...');
         gameState.charlestonPhase = 7;
         
+        // Broadcast Courtesy pass started
+        const newDirection = this.getCharlestonDirectionForPhase(7);
+        const newPhaseName = this.getCharlestonPhaseName(7);
+        
+        console.log(`🔄 Broadcasting Courtesy phase (${newPhaseName} - ${newDirection}) to all players`);
+        
+        this.broadcastToTable(client.tableId, {
+          type: 'charleston_phase_started',
+          data: { 
+            phase: 7,
+            phaseName: newPhaseName,
+            direction: newDirection,
+            requiredTiles: 0, // Courtesy allows 0-3 tiles
+            gameState
+          }
+        });
+        
       } else if (currentPhase === 7) {
         // After Courtesy pass - End Charleston
         console.log('🏁 Courtesy pass complete. Charleston ending...');
@@ -779,6 +796,11 @@ export class WebSocketManager {
           }
         });
       }
+      
+      // Update the game state in storage FIRST  
+      await storage.updateGame(game.id, {
+        gameState: JSON.stringify(gameState)
+      });
       
       // CHECK IF CHARLESTON SHOULD END
       if (gameState.charlestonPhase >= 8) {
