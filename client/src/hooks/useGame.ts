@@ -76,6 +76,15 @@ export function useGame(tableId?: string) {
         }));
         break;
 
+      case 'game_state_updated':
+        setGameState(prev => ({
+          ...prev,
+          gameState: message.data.gameState,
+          playerStates: message.data.playerStates || prev.playerStates,
+          charlestonInfo: message.data.charleston
+        }));
+        break;
+
       case 'game_started':
         setGameState(prev => ({
           ...prev,

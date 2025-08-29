@@ -430,15 +430,79 @@ export class WebSocketManager {
     try {
       console.log('Processing Charleston pass for user', client.userId, 'with tiles:', data.tiles);
       
-      // Process Charleston pass
-      // This would update the game state with the passed tiles
+      // Get current game
+      const table = await storage.getGameTable(client.tableId);
+      if (!table || !table.currentGameId) {
+        console.log('No active game for Charleston pass');
+        return;
+      }
+
+      const game = await storage.getGame(table.currentGameId);
+      if (!game) {
+        console.log('Game not found');
+        return;
+      }
+
+      const participants = await storage.getGameParticipants(game.id);
+      const currentPlayer = participants.find(p => p.userId === client.userId);
+      if (!currentPlayer) {
+        console.log('Player not in game');
+        return;
+      }
+
+      // Parse current game state
+      const gameState = typeof game.gameState === 'string' ? JSON.parse(game.gameState) : game.gameState;
       
-      this.broadcastToTable(client.tableId, {
-        type: 'charleston_pass',
-        data: { userId: client.userId, passedTiles: data.tiles }
+      // Find receiving player (Right pass: +1, Across: +2, Left: +3)
+      const passDirection = gameState.charleston?.currentPass || 'right';
+      const directionMap = { 'right': 1, 'across': 2, 'left': 3 };
+      const receiverIndex = (currentPlayer.seatPosition + directionMap[passDirection]) % 4;
+      const receivingPlayer = participants.find(p => p.seatPosition === receiverIndex);
+      
+      if (!receivingPlayer) {
+        console.log('No receiving player found');
+        return;
+      }
+
+      console.log(`Charleston: ${currentPlayer.seatPosition} → ${receivingPlayer.seatPosition} (${passDirection})`);
+
+      // Update player hands
+      const currentHand = gameState.players[currentPlayer.seatPosition].hand;
+      const receivingHand = gameState.players[receivingPlayer.seatPosition].hand;
+      
+      // Remove tiles from current player
+      data.tiles.forEach(tile => {
+        const index = currentHand.findIndex(h => h.id === tile.id);
+        if (index !== -1) {
+          currentHand.splice(index, 1);
+        }
+      });
+      
+      // Add tiles to receiving player
+      receivingHand.push(...data.tiles);
+      
+      console.log(`Transferred ${data.tiles.length} tiles from player ${currentPlayer.seatPosition} to ${receivingPlayer.seatPosition}`);
+
+      // Update game state
+      await storage.updateGame(game.id, {
+        gameState: gameState
       });
 
-      console.log('Charleston pass processed and broadcasted');
+      // Broadcast updated game state to all players
+      this.broadcastToTable(client.tableId, {
+        type: 'game_state_updated',
+        data: { 
+          gameState,
+          charleston: {
+            passComplete: true,
+            from: currentPlayer.seatPosition,
+            to: receivingPlayer.seatPosition,
+            tiles: data.tiles.length
+          }
+        }
+      });
+
+      console.log('Charleston pass completed successfully');
 
     } catch (error) {
       console.error('Error handling Charleston pass:', error);
