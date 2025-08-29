@@ -137,9 +137,11 @@ export default function GameTable() {
             </div>
             
             <div className="flex space-x-1">
-              <Badge variant={participant.isReady ? 'default' : 'secondary'} className="text-xs">
-                {participant.isReady ? 'Ready' : 'Not Ready'}
-              </Badge>
+              {!participant.isBot && (
+                <Badge variant={participant.isReady ? 'default' : 'secondary'} className="text-xs">
+                  {participant.isReady ? 'Ready' : 'Not Ready'}
+                </Badge>
+              )}
               {participant.isBot && (
                 <Badge variant="outline" className="text-xs">Bot</Badge>
               )}
@@ -222,7 +224,7 @@ export default function GameTable() {
         </div>
 
         {/* Main game area */}
-        <div className="relative w-full h-full min-h-screen p-8">
+        <div className="relative w-full h-full min-h-screen p-8 pb-52">
         {/* Central game area */}
         <div className="absolute inset-1/4 bg-green-700/80 backdrop-blur-sm rounded-2xl border-4 border-yellow-400/50 flex items-center justify-center">
           <div className="text-center">
@@ -402,11 +404,11 @@ export default function GameTable() {
 
       {/* Player Tile Racks - Bottom Section */}
       {gameState.myPlayer && (
-        <div className="fixed bottom-0 left-0 right-80 bg-card/95 backdrop-blur-sm border-t p-4">
-          <div className="space-y-3">
+        <div className="fixed bottom-0 left-0 right-80 bg-card/95 backdrop-blur-sm border-t p-3 max-h-48 overflow-y-auto">
+          <div className="space-y-2">
             {/* Exposed Rack - contains received tiles and selected tiles for passing */}
             {(exposedRack.length > 0 || isCharlestonPhase) && (
-              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+              <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
                     Exposed Rack - Click to move to main rack
