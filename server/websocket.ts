@@ -618,11 +618,21 @@ export class WebSocketManager {
       console.log('Available clients:', Array.from(this.clients.keys()));
       
       for (const participant of participants) {
-        const clientKey = participant.userId || participant.botId || '';
-        const client = this.clients.get(clientKey);
-        console.log(`Checking participant ${participant.seatPosition}: clientKey=${clientKey}, hasClient=${!!client}, isBot=${participant.isBot}, hasReceivedTiles=${!!receivedTilesInfo[participant.seatPosition]}`);
+        if (participant.isBot) continue; // Skip bots
         
-        if (client && !participant.isBot && receivedTilesInfo[participant.seatPosition]) {
+        // Find client by searching through all clients for matching userId
+        let foundClient = null;
+        for (const [clientId, client] of this.clients.entries()) {
+          if (client.userId === participant.userId) {
+            foundClient = client;
+            console.log(`✅ Found client for user ${participant.userId}: ${clientId}`);
+            break;
+          }
+        }
+        
+        console.log(`Checking participant ${participant.seatPosition}: userId=${participant.userId}, foundClient=${!!foundClient}, hasReceivedTiles=${!!receivedTilesInfo[participant.seatPosition]}`);
+        
+        if (foundClient && receivedTilesInfo[participant.seatPosition]) {
           console.log(`✅ SENDING received tiles to player ${participant.seatPosition}:`, receivedTilesInfo[participant.seatPosition]);
           const message = {
             type: 'charleston_received_tiles',
@@ -634,7 +644,9 @@ export class WebSocketManager {
             }
           };
           console.log(`📤 Sending charleston_received_tiles message:`, message);
-          client.ws.send(JSON.stringify(message));
+          foundClient.ws.send(JSON.stringify(message));
+        } else {
+          console.log(`❌ Cannot send to participant ${participant.seatPosition}: foundClient=${!!foundClient}, hasReceivedTiles=${!!receivedTilesInfo[participant.seatPosition]}`);
         }
       }
       
