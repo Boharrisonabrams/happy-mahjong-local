@@ -1,0 +1,110 @@
+Charleston (NMJL-style) — Implementation Spec
+
+Scope: After the initial deal and before regular play.
+
+Tile/hand prerequisites
+
+Each player starts with 13 tiles; East has 14.
+
+Jokers may not be passed during the Charleston. Enforce as a rules check.
+
+During each standard pass, a player must pass exactly 3 tiles.
+
+During the Courtesy Pass, a player may pass 0–3 tiles.
+
+If a player “can’t find” 3 discards in a standard pass, they still must pass 3 (they may include tiles they’d prefer to keep or tiles they just received). This is often called a blind/forced pass—you don’t need a special rule flag; just enforce the count.
+
+Phase/Pass order (by seat direction)
+
+Define seat neighbors as Right, Across, Left.
+
+Phase 1 — First Charleston (mandatory; 3 passes)
+
+Pass Right: each player selects 3 tiles → neighbor on the Right; receives 3 from Left.
+
+Pass Across: 3 tiles → Across; receive 3 from Across.
+
+Pass Left: 3 tiles → Left; receive 3 from Right.
+
+After Pass 3 completes, any player may call “Stop”. If any player stops here, skip Phase 2 and go to the Courtesy Pass.
+
+Phase 2 — Second Charleston (optional; proceeds unless stopped; 3 passes)
+
+Pass Across: 3 tiles → Across; receive 3 from Across.
+
+Pass Left: 3 tiles → Left; receive 3 from Right.
+
+Pass Right: 3 tiles → Right; receive 3 from Left.
+
+At any point before starting Phase 2 (i.e., after Pass 3) a player may stop the Charleston (table-wide). If not stopped, complete all three passes (4–6).
+
+Phase 3 — Courtesy Pass (optional; limited to opposites)
+
+After Phase 1 (if stopped) or after Phase 2, offer a Courtesy Pass between opposite players only (each pair acts independently).
+
+Each of the two opposite players may pass 0, 1, 2, or 3 tiles; the numbers do not have to match.
+
+Jokers still cannot be passed.
+
+When both opposite pairs are done (or both decline), the Charleston ends and regular play begins.
+
+Developer notes: state machine & validations
+States
+
+CHARLESTON_P1_R (Pass 1: Right)
+
+CHARLESTON_P1_A (Pass 2: Across)
+
+CHARLESTON_P1_L (Pass 3: Left)
+
+CHARLESTON_DECIDE_STOP (post-P1 decision gate)
+
+CHARLESTON_P2_A (Pass 4: Across)
+
+CHARLESTON_P2_L (Pass 5: Left)
+
+CHARLESTON_P2_R (Pass 6: Right)
+
+COURTESY_PASS_PAIR_1 (Opposites A↔C)
+
+COURTESY_PASS_PAIR_2 (Opposites B↔D)
+
+CHARLESTON_DONE
+
+Per-pass contract
+
+Select exactly 3 tiles (IDs) from hand, none may be Joker.
+
+Lock selection on confirm; enqueue transfer to target neighbor.
+
+When all four players have confirmed, execute transfers simultaneously (so no player sees intermediate ordering advantages).
+
+After transfer, hands receive exactly 3 incoming tiles.
+
+Courtesy contract
+
+Opposite pair session: each may select 0–3 non-Joker tiles; confirm; exchange simultaneously.
+
+Permit asymmetric counts (e.g., 2 vs 0).
+
+Validations
+
+Reject selection containing Joker: rulesError("Jokers cannot be passed during the Charleston.")
+
+Standard pass: reject counts ≠ 3.
+
+Courtesy pass: reject counts > 3.
+
+Enforce direction mapping (Right/Across/Left) from seat positions.
+
+UX suggestions (optional)
+
+Show pass direction and count requirement prominently.
+
+Disable Joker selection in the pass dialog to reduce errors.
+
+Provide a “Stop Charleston” button after Pass 3 (visible to all; if any player clicks, broadcast stop).
+
+Provide “Offer/Accept Courtesy Pass” toggle for each opposite pair.
+
+Add a tile-lock indicator on confirmed selections.

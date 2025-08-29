@@ -192,6 +192,19 @@ export function useGame(tableId?: string) {
     }
   }, [user, isConnected, sendMessage]);
 
+  // Auto-join table when page loads and WebSocket is connected
+  useEffect(() => {
+    if (tableId && user && isConnected && !gameState.table) {
+      // Small delay to ensure authentication is processed first
+      setTimeout(() => {
+        sendMessage({ 
+          type: 'join_table', 
+          data: { tableId } 
+        });
+      }, 200);
+    }
+  }, [tableId, user, isConnected, gameState.table, sendMessage]);
+
   // Game actions
   const actions: GameActions = {
     joinTable: useCallback((tableId: string) => {

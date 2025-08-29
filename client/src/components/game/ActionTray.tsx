@@ -69,7 +69,7 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
         <Button 
           size="sm" 
           className="w-full"
-          disabled={!isMyTurn}
+          disabled={false}
           onClick={() => onAction('charleston_confirm')}
           data-testid="charleston-confirm"
         >
