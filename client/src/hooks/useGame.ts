@@ -178,6 +178,23 @@ export function useGame(tableId?: string) {
         }));
         break;
 
+      case 'charleston_phase_started':
+        console.log('🔄 New Charleston phase started:', message.data);
+        setGameState(prev => ({
+          ...prev,
+          gameState: message.data.gameState,
+          charlestonInfo: {
+            phase: message.data.phase,
+            phaseName: message.data.phaseName,
+            direction: message.data.direction,
+            requiredTiles: message.data.requiredTiles,
+            receivedTiles: null, // Clear previous received tiles
+            passComplete: false,
+            decisionRequired: false
+          }
+        }));
+        break;
+
       case 'game_started':
         setGameState(prev => ({
           ...prev,

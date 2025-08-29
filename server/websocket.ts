@@ -534,6 +534,32 @@ export class WebSocketManager {
     }
   }
 
+  private getCharlestonDirectionForPhase(phase: number): string {
+    switch (phase) {
+      case 1: return 'right';   // Round 1: Right
+      case 2: return 'across';  // Round 1: Across  
+      case 3: return 'left';    // Round 1: Left
+      case 4: return 'left';    // Round 2: Left
+      case 5: return 'across';  // Round 2: Across
+      case 6: return 'right';   // Round 2: Right
+      case 7: return 'across';  // Courtesy: Across
+      default: return 'right';
+    }
+  }
+
+  private getCharlestonPhaseName(phase: number): string {
+    switch (phase) {
+      case 1: return 'Right Pass';
+      case 2: return 'Across Pass';  
+      case 3: return 'Left Pass';
+      case 4: return 'Round 2: Left Pass';
+      case 5: return 'Round 2: Across Pass';
+      case 6: return 'Round 2: Right Pass';
+      case 7: return 'Courtesy Pass (0-3 tiles)';
+      default: return 'Charleston Phase';
+    }
+  }
+
   private async handleCharlestonPass(clientId: string, data: any): Promise<void> {
     console.log('=== HANDLE CHARLESTON PASS ===');
     console.log('Client ID:', clientId);
@@ -735,6 +761,23 @@ export class WebSocketManager {
       } else {
         // Normal phase increment
         gameState.charlestonPhase = nextPhase;
+        
+        // Broadcast new phase started to all players
+        const newDirection = this.getCharlestonDirectionForPhase(nextPhase);
+        const newPhaseName = this.getCharlestonPhaseName(nextPhase);
+        
+        console.log(`🔄 Broadcasting new Charleston phase ${nextPhase} (${newPhaseName} - ${newDirection}) to all players`);
+        
+        this.broadcastToTable(client.tableId, {
+          type: 'charleston_phase_started',
+          data: { 
+            phase: nextPhase,
+            phaseName: newPhaseName,
+            direction: newDirection,
+            requiredTiles: nextPhase === 7 ? 0 : 3, // Courtesy allows 0-3 tiles
+            gameState
+          }
+        });
       }
       
       // CHECK IF CHARLESTON SHOULD END
