@@ -77,12 +77,31 @@ export function useGame(tableId?: string) {
         break;
 
       case 'game_state_updated':
-        setGameState(prev => ({
-          ...prev,
-          gameState: message.data.gameState,
-          playerStates: message.data.playerStates || prev.playerStates,
-          charlestonInfo: message.data.charleston
-        }));
+        setGameState(prev => {
+          const newGameState = message.data.gameState;
+          
+          // Extract updated player states from gameState.players
+          const updatedPlayerStates: Record<number, any> = {};
+          if (newGameState?.players) {
+            newGameState.players.forEach((player: any, index: number) => {
+              updatedPlayerStates[index] = {
+                rack: player.hand || [],
+                melds: player.melded || [],
+                discarded: player.discarded || [],
+                flowers: player.flowers || []
+              };
+            });
+          }
+          
+          return {
+            ...prev,
+            gameState: newGameState,
+            playerStates: Object.keys(updatedPlayerStates).length > 0 
+              ? updatedPlayerStates 
+              : (message.data.playerStates || prev.playerStates),
+            charlestonInfo: message.data.charleston
+          };
+        });
         break;
 
       case 'game_started':
