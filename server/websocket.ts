@@ -442,7 +442,6 @@ export class WebSocketManager {
 
   private async processBotCharlestonPasses(participants: any[], gameState: any, passDirection: string): Promise<void> {
     console.log('=== PROCESSING BOT CHARLESTON PASSES ===');
-    const botService = require('./services/botService').BotService.getInstance();
     const directionMap: Record<string, number> = { 'right': 1, 'across': 2, 'left': 3 };
     
     // Process all bots
