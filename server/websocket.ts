@@ -744,7 +744,8 @@ export class WebSocketManager {
       console.log('Bots needed:', botsNeeded, 'Human players:', humanPlayers.length);
       
       // Add bots to fill empty seats
-      console.log('Starting bot addition loop for', botsNeeded, 'bots');
+      try {
+        console.log('Starting bot addition loop for', botsNeeded, 'bots');
       for (let i = 0; i < botsNeeded; i++) {
         console.log(`Adding bot ${i + 1} of ${botsNeeded}`);
         console.log('Finding empty seat...');
@@ -789,6 +790,10 @@ export class WebSocketManager {
       
       if (updatedParticipants.length >= maxPlayers) {
         await this.startGame(table, currentGame);
+      }
+      } catch (botError) {
+        console.error('CRITICAL: Bot addition loop failed:', botError);
+        console.error('Bot error stack:', botError.stack);
       }
 
     } catch (error) {
