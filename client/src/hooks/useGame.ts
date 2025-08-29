@@ -141,6 +141,43 @@ export function useGame(tableId?: string) {
         }));
         break;
 
+      case 'charleston_decision_required':
+        console.log('🛑 Charleston decision required:', message.data);
+        setGameState(prev => ({
+          ...prev,
+          charlestonInfo: {
+            ...prev.charlestonInfo,
+            decisionRequired: true,
+            decisionMessage: message.data.message
+          }
+        }));
+        break;
+
+      case 'charleston_decision_result':
+        console.log('✅ Charleston decision result:', message.data);
+        setGameState(prev => ({
+          ...prev,
+          gameState: message.data.gameState,
+          charlestonInfo: {
+            ...prev.charlestonInfo,
+            decisionRequired: false,
+            decisionMessage: message.data.message
+          }
+        }));
+        break;
+
+      case 'charleston_votes_updated':
+        console.log('📊 Charleston votes updated:', message.data);
+        setGameState(prev => ({
+          ...prev,
+          charlestonInfo: {
+            ...prev.charlestonInfo,
+            votesReceived: message.data.votesReceived,
+            votesRequired: message.data.votesRequired
+          }
+        }));
+        break;
+
       case 'game_started':
         setGameState(prev => ({
           ...prev,

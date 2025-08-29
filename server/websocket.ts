@@ -144,6 +144,10 @@ export class WebSocketManager {
       case 'charleston_pass':
         await this.handleCharlestonPass(clientId, message.data);
         break;
+        
+      case 'charleston_decision':
+        await this.handleCharlestonDecision(clientId, message.data);
+        break;
       
       default:
         console.warn(`Unknown message type: ${message.type}`);
@@ -697,15 +701,26 @@ export class WebSocketManager {
       
       // HANDLE CHARLESTON DECISION POINTS
       if (currentPhase === 3) {
-        // After Round 1 (Left pass) - Stop or Continue decision
-        console.log('🛑 Round 1 complete. Stop/Continue decision needed...');
+        // After Round 1 (Left pass) - Stop or Continue decision required from ALL players
+        console.log('🛑 Round 1 complete. Waiting for Stop/Continue decision from all players...');
         gameState.charlestonPhase = 3.5; // Special phase for decision
-        gameState.charlestonDecision = 'pending'; // Need player decisions
+        gameState.charlestonDecision = {
+          status: 'pending',
+          votes: {}, // Will collect votes from each player
+          requiredVotes: 4 // All 4 players must vote
+        };
         
-        // For now, auto-continue (TODO: Add player decision UI)
-        console.log('🔄 Auto-continuing to Round 2 for now');
-        gameState.charlestonPhase = 4;
-        gameState.charlestonDecision = 'continue';
+        // Broadcast decision request to all players
+        this.broadcastToTable(client.tableId, {
+          type: 'charleston_decision_required',
+          data: { 
+            message: 'Round 1 complete! Do you want to continue to Round 2?',
+            phase: 'stop_or_continue'
+          }
+        });
+        
+        // Don't increment phase yet - wait for all player decisions
+        return;
         
       } else if (currentPhase === 6) {
         // After Round 2 (Right pass) - Move to Courtesy
@@ -754,6 +769,130 @@ export class WebSocketManager {
 
     } catch (error) {
       console.error('Error handling Charleston pass:', error);
+    }
+  }
+
+  // Charleston decision handler
+  private async handleCharlestonDecision(clientId: string, data: any): Promise<void> {
+    console.log('=== HANDLE CHARLESTON DECISION ===');
+    console.log('Client ID:', clientId, 'Decision:', data.decision);
+    
+    const client = this.clients.get(clientId);
+    if (!client || !client.userId || !client.tableId) {
+      console.log('Decision: No client, userId, or tableId');
+      return;
+    }
+
+    try {
+      // Get current game
+      const table = await storage.getGameTable(client.tableId);
+      if (!table || !table.currentGameId) {
+        console.log('No active game for Charleston decision');
+        return;
+      }
+
+      const game = await storage.getGame(table.currentGameId);
+      if (!game) {
+        console.log('Game not found');
+        return;
+      }
+
+      const participants = await storage.getGameParticipants(game.id);
+      const currentPlayer = participants.find(p => p.userId === client.userId);
+      if (!currentPlayer) {
+        console.log('Player not in game');
+        return;
+      }
+
+      // Parse current game state
+      const gameState = typeof game.gameState === 'string' ? JSON.parse(game.gameState) : game.gameState;
+      
+      if (!gameState.charlestonDecision || gameState.charlestonDecision.status !== 'pending') {
+        console.log('No pending Charleston decision');
+        return;
+      }
+
+      // Record the vote
+      gameState.charlestonDecision.votes[currentPlayer.seatPosition] = data.decision; // 'continue' or 'stop'
+      console.log(`Player ${currentPlayer.seatPosition} voted: ${data.decision}`);
+
+      // Automatically vote for bots (they randomly decide)
+      for (const participant of participants) {
+        if (participant.isBot && !gameState.charlestonDecision.votes.hasOwnProperty(participant.seatPosition)) {
+          const botDecision = Math.random() > 0.3 ? 'continue' : 'stop'; // 70% chance to continue
+          gameState.charlestonDecision.votes[participant.seatPosition] = botDecision;
+          console.log(`Bot ${participant.seatPosition} voted: ${botDecision}`);
+        }
+      }
+
+      const voteCount = Object.keys(gameState.charlestonDecision.votes).length;
+      console.log(`Votes collected: ${voteCount}/${gameState.charlestonDecision.requiredVotes}`);
+
+      // Check if all votes are collected
+      if (voteCount >= gameState.charlestonDecision.requiredVotes) {
+        const votes = Object.values(gameState.charlestonDecision.votes);
+        const continueVotes = votes.filter(v => v === 'continue').length;
+        const stopVotes = votes.filter(v => v === 'stop').length;
+
+        console.log(`Final vote tally: Continue=${continueVotes}, Stop=${stopVotes}`);
+
+        // Unanimous agreement required to continue
+        if (continueVotes === 4) {
+          // All players want to continue - proceed to Round 2
+          console.log('🔄 Unanimous Continue! Proceeding to Round 2...');
+          gameState.charlestonPhase = 4; // Phase 4: Round 2 Left pass
+          gameState.charlestonDecision = { status: 'continue' };
+          
+          this.broadcastToTable(client.tableId, {
+            type: 'charleston_decision_result',
+            data: { 
+              result: 'continue',
+              message: 'All players agreed to continue! Round 2 begins...',
+              gameState
+            }
+          });
+          
+        } else {
+          // At least one player wants to stop - skip to Courtesy pass
+          console.log('🛑 One or more players voted Stop. Skipping to Courtesy pass...');
+          gameState.charlestonPhase = 7; // Phase 7: Courtesy pass
+          gameState.charlestonDecision = { status: 'stop' };
+          
+          this.broadcastToTable(client.tableId, {
+            type: 'charleston_decision_result',
+            data: { 
+              result: 'stop',
+              message: `Round 2 skipped (${stopVotes} Stop, ${continueVotes} Continue). Moving to Courtesy pass...`,
+              gameState
+            }
+          });
+        }
+
+        // Update game state in storage
+        await storage.updateGame(game.id, {
+          gameState: JSON.stringify(gameState)
+        });
+      } else {
+        // Still waiting for more votes
+        console.log(`Waiting for ${gameState.charlestonDecision.requiredVotes - voteCount} more votes...`);
+        
+        // Update game state with current votes
+        await storage.updateGame(game.id, {
+          gameState: JSON.stringify(gameState)
+        });
+        
+        // Broadcast vote update
+        this.broadcastToTable(client.tableId, {
+          type: 'charleston_votes_updated',
+          data: { 
+            votesReceived: voteCount,
+            votesRequired: gameState.charlestonDecision.requiredVotes
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('Error handling Charleston decision:', error);
     }
   }
 

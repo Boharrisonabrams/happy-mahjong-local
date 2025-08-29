@@ -391,6 +391,14 @@ export default function GameTable() {
                 gameState={gameState}
                 onAction={(action, data) => {
                   switch (action) {
+                    case 'charleston_decision':
+                      // Handle Stop/Continue decision for Round 2
+                      actions.sendMessage({
+                        type: 'charleston_decision',
+                        data: { decision: data.decision } // 'stop' or 'continue'
+                      });
+                      break;
+                    
                     case 'charleston_confirm':
                       // Find tiles that are in exposed rack but NOT received tiles (these are the ones to pass)
                       const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];

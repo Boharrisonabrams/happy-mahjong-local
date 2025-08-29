@@ -387,6 +387,11 @@ export interface GameStateInfo {
   charlestonStopped?: boolean; // Whether any player called "Stop" after Round 1
   charlestonConfirmations?: { [seatPosition: number]: boolean }; // Track player confirmations
   charlestonDirection?: 'right' | 'across' | 'left'; // Current pass direction
+  charlestonDecision?: {
+    status: 'pending' | 'continue' | 'stop';
+    votes?: { [seatPosition: number]: 'continue' | 'stop' };
+    requiredVotes?: number;
+  };
 }
 
 export interface PlayerStateInfo {

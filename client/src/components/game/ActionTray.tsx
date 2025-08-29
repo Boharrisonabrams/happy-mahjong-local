@@ -57,13 +57,59 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
     </div>
   );
 
+  const renderCharlestonDecision = () => (
+    <div className="space-y-3">
+      <h3 className="font-semibold text-sm">Round 2 Decision</h3>
+      
+      <div className="space-y-2">
+        <div className="text-xs text-center p-2 bg-muted rounded">
+          {gameState.charlestonInfo?.decisionMessage || 'Do you want to continue to Round 2?'}
+        </div>
+        
+        {gameState.charlestonInfo?.votesReceived && (
+          <div className="text-xs text-center text-muted-foreground">
+            Votes: {gameState.charlestonInfo.votesReceived}/{gameState.charlestonInfo.votesRequired}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-50"
+            onClick={() => onAction('charleston_decision', { decision: 'stop' })}
+            data-testid="charleston-stop"
+          >
+            <XCircle className="w-4 h-4 mr-1" />
+            Stop
+          </Button>
+          
+          <Button 
+            size="sm"
+            variant="outline" 
+            className="border-green-300 text-green-700 hover:bg-green-50"
+            onClick={() => onAction('charleston_decision', { decision: 'continue' })}
+            data-testid="charleston-continue"
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            Continue
+          </Button>
+        </div>
+
+        <div className="text-xs text-muted-foreground text-center">
+          All 4 players must agree to continue
+        </div>
+      </div>
+    </div>
+  );
+
   const renderCharlestonActions = () => (
     <div className="space-y-3">
       <h3 className="font-semibold text-sm">Charleston Phase</h3>
       
       <div className="space-y-2">
         <Badge variant="secondary" className="w-full justify-center">
-          Pass 3 tiles
+          {gameState.charlestonInfo?.phaseName || 'Pass 3 tiles'}
         </Badge>
         
         <Button 
@@ -78,7 +124,10 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
         </Button>
 
         <div className="text-xs text-muted-foreground text-center">
-          Select 3 tiles from your rack
+          {gameState.charlestonInfo?.requiredTiles === 0 
+            ? 'Pass 0-3 tiles (your choice)'
+            : `Select ${gameState.charlestonInfo?.requiredTiles || 3} tiles from your rack`
+          }
         </div>
       </div>
     </div>
@@ -186,7 +235,8 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
   return (
     <Card className={cn("p-3", className)} data-testid="action-tray">
       {currentGameState?.phase === 'setup' && renderSetupActions()}
-      {currentGameState?.phase === 'charleston' && renderCharlestonActions()}
+      {currentGameState?.phase === 'charleston' && gameState.charlestonInfo?.decisionRequired && renderCharlestonDecision()}
+      {currentGameState?.phase === 'charleston' && !gameState.charlestonInfo?.decisionRequired && renderCharlestonActions()}
       {currentGameState?.phase === 'playing' && renderPlayingActions()}
       
       {currentGameState?.phase !== 'setup' && renderGameInfo()}
