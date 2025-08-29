@@ -220,7 +220,7 @@ export class WebSocketManager {
           client.userId,
           tableId,
           client.sessionId,
-          table.isPrivate,
+          table.isPrivate || false,
           participants.length + 1
         );
         console.log('Analytics tracked successfully');
@@ -323,8 +323,8 @@ export class WebSocketManager {
           playerId: client.userId,
           actionType: action,
           actionData: data,
-          gameStateBefore: game.gameState,
-          gameStateAfter: actionResult.newGameState
+          gameStateBefore: JSON.stringify(game.gameState),
+          gameStateAfter: JSON.stringify(actionResult.newGameState)
         });
 
         // Update game state
@@ -547,9 +547,10 @@ export class WebSocketManager {
       if (!game) return;
 
       // Get bot decision
+      const gameState = typeof game.gameState === 'string' ? JSON.parse(game.gameState) : game.gameState;
       const botAction = botService.decideBotAction(
         botParticipant,
-        game.gameState,
+        gameState as any,
         'standard', // Would get from table settings
         ['draw', 'discard'] // Would determine available actions
       );
@@ -574,7 +575,7 @@ export class WebSocketManager {
     const tableClientIds = this.tableClients.get(tableId);
     if (!tableClientIds) return;
 
-    for (const clientId of tableClientIds) {
+    for (const clientId of Array.from(tableClientIds)) {
       if (clientId !== excludeClientId) {
         this.sendToClient(clientId, message);
       }
@@ -800,7 +801,7 @@ export class WebSocketManager {
       };
 
       await storage.updateGame(game.id, {
-        gameState,
+        gameState: JSON.stringify(gameState),
         wallTiles: wall,
         status: 'charleston'
       });
