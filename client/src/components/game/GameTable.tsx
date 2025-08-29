@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2, Wifi, WifiOff, Users, MessageSquare } from "lucide-react";
+import { Loader2, Wifi, WifiOff, Users, MessageSquare, Lightbulb, Crown, Settings } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from "react";
 import React from "react";
@@ -331,61 +331,54 @@ export default function GameTable() {
           </div>
         </div>
 
-        {/* Action Tray */}
-        {gameState.myPlayer && (
-          <div className="p-4 border-b border-border">
-            <ActionTray 
-              gameState={gameState}
-              onAction={(action, data) => {
-                switch (action) {
-                  case 'charleston_decision':
-                    actions.charlestonDecision(data.decision);
-                    break;
-                  case 'charleston_confirm':
-                    const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
-                    const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
-                    const isCourtesy = gameState.gameState?.charlestonPhase === 7;
-                    if (isCourtesy ? (tilesToPass.length <= 3) : (tilesToPass.length === 3)) {
-                      const nonJokerTiles = tilesToPass.filter(tile => !tile.isJoker);
-                      if (nonJokerTiles.length === tilesToPass.length) {
-                        actions.passTiles(nonJokerTiles);
-                        setExposedRack(prev => prev.filter(tile => 
-                          !tilesToPass.some(passed => passed.id === tile.id)
-                        ));
-                      } else {
-                        toast({
-                          title: "Cannot Pass Jokers",
-                          description: "Jokers cannot be passed during Charleston.",
-                          variant: "destructive"
-                        });
-                      }
-                    } else {
-                      toast({
-                        title: isCourtesy ? "Too Many Tiles" : "Select 3 Tiles",
-                        description: isCourtesy 
-                          ? `Courtesy pass allows up to 3 tiles. You have ${tilesToPass.length} tiles selected.`
-                          : `You need exactly 3 tiles in your exposed rack to pass.`,
-                        variant: "destructive"
-                      });
-                    }
-                    break;
-                  case 'draw':
-                    actions.drawTile();
-                    break;
-                  case 'call':
-                    actions.callTile(data.callType);
-                    break;
-                  case 'ready':
-                    actions.setReady(data.ready);
-                    break;
-                  case 'win':
-                    actions.declareWin();
-                    break;
-                }
-              }}
-            />
+        {/* Game Assistance */}
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold mb-3 flex items-center">
+            <Lightbulb className="w-4 h-4 mr-2" />
+            Game Help
+          </h3>
+          <div className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              Get Hint
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              Suggested Hand
+            </Button>
+            <div className="flex items-center justify-between pt-1">
+              <label className="text-sm">Turn on Coach</label>
+              <input type="checkbox" className="rounded" />
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Game Controls */}
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold mb-3 flex items-center">
+            <Crown className="w-4 h-4 mr-2" />
+            Game Controls
+          </h3>
+          <div className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              New Game
+            </Button>
+            <Button variant="destructive" size="sm" className="w-full justify-start">
+              End Game
+            </Button>
+          </div>
+        </div>
+
+        {/* Settings */}
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold mb-3 flex items-center">
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </h3>
+          <div className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              Tile Theme
+            </Button>
+          </div>
+        </div>
 
         {/* Chat */}
         <div className="flex-1 p-4">
@@ -406,6 +399,62 @@ export default function GameTable() {
       {gameState.myPlayer && (
         <div className="fixed bottom-0 left-0 right-80 bg-card/95 backdrop-blur-sm border-t p-3">
           <div className="space-y-2">
+            {/* Game Actions - prominently displayed above tiles */}
+            {gameState.myPlayer && (
+              <div className="bg-accent/10 dark:bg-accent/5 p-3 rounded-lg border border-accent/30">
+                <ActionTray 
+                  gameState={gameState}
+                  onAction={(action, data) => {
+                    switch (action) {
+                      case 'charleston_decision':
+                        actions.charlestonDecision(data.decision);
+                        break;
+                      case 'charleston_confirm':
+                        const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
+                        const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
+                        const isCourtesy = gameState.gameState?.charlestonPhase === 7;
+                        if (isCourtesy ? (tilesToPass.length <= 3) : (tilesToPass.length === 3)) {
+                          const nonJokerTiles = tilesToPass.filter(tile => !tile.isJoker);
+                          if (nonJokerTiles.length === tilesToPass.length) {
+                            actions.passTiles(nonJokerTiles);
+                            setExposedRack(prev => prev.filter(tile => 
+                              !tilesToPass.some(passed => passed.id === tile.id)
+                            ));
+                          } else {
+                            toast({
+                              title: "Cannot Pass Jokers",
+                              description: "Jokers cannot be passed during Charleston.",
+                              variant: "destructive"
+                            });
+                          }
+                        } else {
+                          toast({
+                            title: isCourtesy ? "Too Many Tiles" : "Select 3 Tiles",
+                            description: isCourtesy 
+                              ? `Courtesy pass allows up to 3 tiles. You have ${tilesToPass.length} tiles selected.`
+                              : `You need exactly 3 tiles in your exposed rack to pass.`,
+                            variant: "destructive"
+                          });
+                        }
+                        break;
+                      case 'draw':
+                        actions.drawTile();
+                        break;
+                      case 'call':
+                        actions.callTile(data.callType);
+                        break;
+                      case 'ready':
+                        actions.setReady(data.ready);
+                        break;
+                      case 'win':
+                        actions.declareWin();
+                        break;
+                    }
+                  }}
+                />
+              </div>
+            )}
+
             {/* Exposed Rack - contains received tiles and selected tiles for passing */}
             {(exposedRack.length > 0 || isCharlestonPhase) && (
               <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-lg border-2 border-blue-200 dark:border-blue-800">
