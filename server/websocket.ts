@@ -168,6 +168,8 @@ export class WebSocketManager {
     
     try {
       console.log('Getting table from storage...');
+      console.log('Storage object:', !!storage);
+      console.log('Storage.getGameTable:', !!storage?.getGameTable);
       const table = await storage.getGameTable(tableId);
       if (!table) {
         console.log('Table not found:', tableId);
