@@ -743,13 +743,18 @@ export class WebSocketManager {
       console.log('Bots needed:', botsNeeded, 'Human players:', humanPlayers.length);
       
       // Add bots to fill empty seats
+      console.log('Starting bot addition loop for', botsNeeded, 'bots');
       for (let i = 0; i < botsNeeded; i++) {
+        console.log(`Adding bot ${i + 1} of ${botsNeeded}`);
+        console.log('Finding empty seat...');
         const seatPosition = this.findEmptySeat(participants, maxPlayers);
+        console.log('Empty seat found:', seatPosition);
         if (seatPosition !== -1) {
           // Get seat-specific bot settings if available
           const seatBotSettings = table.settings?.seatBotSettings;
           const botDifficulty = seatBotSettings?.[seatPosition] || table.botDifficulty || 'standard';
           
+          console.log(`Creating bot for seat ${seatPosition} with difficulty: ${botDifficulty}`);
           const botParticipant = await storage.addGameParticipant({
             gameId: currentGame.id,
             userId: null,
@@ -762,6 +767,7 @@ export class WebSocketManager {
             flowers: [],
             isReady: true // Bots are always ready
           });
+          console.log('Bot participant created:', botParticipant.isBot ? `Bot seat ${seatPosition}` : 'ERROR');
           
           // Update participants list for next iteration
           participants.push(botParticipant);
