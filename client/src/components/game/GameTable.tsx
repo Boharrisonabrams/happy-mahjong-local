@@ -107,11 +107,11 @@ export default function GameTable() {
     return (
       <div 
         className={`
-          absolute flex flex-col items-center space-y-2 p-3 rounded-lg
-          ${visualPosition === 0 ? 'top-8 left-1/2 transform -translate-x-1/2' : ''}
-          ${visualPosition === 1 ? 'right-4 top-1/2 transform -translate-y-1/2' : ''}
-          ${visualPosition === 2 ? 'bottom-4 left-1/2 transform -translate-x-1/2' : ''}
-          ${visualPosition === 3 ? 'left-4 top-1/2 transform -translate-y-1/2' : ''}
+          absolute flex flex-col items-center space-y-1 p-2 rounded-lg
+          ${visualPosition === 0 ? 'top-6 left-1/2 transform -translate-x-1/2' : ''}
+          ${visualPosition === 1 ? 'right-3 top-1/3 transform -translate-y-1/2' : ''}
+          ${visualPosition === 2 ? 'bottom-6 left-1/2 transform -translate-x-1/2' : ''}
+          ${visualPosition === 3 ? 'left-3 top-1/3 transform -translate-y-1/2' : ''}
           ${isCurrentPlayer ? 'bg-accent/20 border-2 border-accent' : 'bg-muted/50'}
           ${isMyPosition ? 'ring-2 ring-primary' : ''}
         `}
@@ -161,7 +161,7 @@ export default function GameTable() {
             {participant.isBot && participant.rackTiles && (
               <div 
                 className={`
-                  flex gap-1 items-center justify-center mt-2
+                  flex gap-0.5 items-center justify-center mt-1
                   ${visualPosition === 0 ? 'flex-row' : ''}
                   ${visualPosition === 1 ? 'flex-col' : ''}
                   ${visualPosition === 2 ? 'flex-row' : ''}
@@ -224,9 +224,9 @@ export default function GameTable() {
         </div>
 
         {/* Main game area */}
-        <div className="relative w-full h-full min-h-screen p-8 pb-52">
-        {/* Central game area */}
-        <div className="absolute inset-1/4 bg-green-700/80 backdrop-blur-sm rounded-2xl border-4 border-yellow-400/50 flex items-center justify-center">
+        <div className="relative w-full h-full min-h-screen p-6 pb-40">
+        {/* Central game area - more rectangular */}
+        <div className="absolute left-1/4 right-1/4 top-1/3 bottom-1/2 bg-green-700/80 backdrop-blur-sm rounded-2xl border-4 border-yellow-400/50 flex items-center justify-center">
           <div className="text-center">
             {gameState.gameState?.phase === 'setup' && (
               <div className="space-y-4">
@@ -275,7 +275,7 @@ export default function GameTable() {
         ))}
 
         {/* Discard area - center */}
-        <div className="absolute inset-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32">
+        <div className="absolute left-1/2 top-2/5 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32">
           <DiscardArea 
             discards={gameState.gameState?.lastDiscardedTile ? [gameState.gameState.lastDiscardedTile] : []}
             lastDiscardedBySeat={gameState.gameState?.lastDiscardedBySeat}
@@ -404,7 +404,7 @@ export default function GameTable() {
 
       {/* Player Tile Racks - Bottom Section */}
       {gameState.myPlayer && (
-        <div className="fixed bottom-0 left-0 right-80 bg-card/95 backdrop-blur-sm border-t p-3 max-h-48 overflow-y-auto">
+        <div className="fixed bottom-0 left-0 right-80 bg-card/95 backdrop-blur-sm border-t p-3">
           <div className="space-y-2">
             {/* Exposed Rack - contains received tiles and selected tiles for passing */}
             {(exposedRack.length > 0 || isCharlestonPhase) && (
