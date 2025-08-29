@@ -54,8 +54,12 @@ export class WebSocketManager {
 
       // Setup message handling
       ws.on('message', async (message: Buffer) => {
+        console.log('=== WEBSOCKET MESSAGE RECEIVED ===');
+        console.log('Raw message:', message.toString());
         try {
           const data = JSON.parse(message.toString()) as WebSocketMessage;
+          console.log('Parsed message:', data);
+          console.log('Message type:', data.type);
           await this.handleMessage(clientId, data);
         } catch (error) {
           console.error('WebSocket message error:', error);
@@ -89,9 +93,17 @@ export class WebSocketManager {
   }
 
   private async handleMessage(clientId: string, message: WebSocketMessage): Promise<void> {
+    console.log('=== HANDLE MESSAGE ===');
+    console.log('Client ID:', clientId);
+    console.log('Message:', message);
+    
     const client = this.clients.get(clientId);
-    if (!client) return;
+    if (!client) {
+      console.log('No client found for ID:', clientId);
+      return;
+    }
 
+    console.log('Processing message type:', message.type);
     switch (message.type) {
       case 'authenticate':
         await this.handleAuthentication(clientId, message.data);
