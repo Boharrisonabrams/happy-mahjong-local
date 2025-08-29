@@ -13,6 +13,12 @@ import { Loader2, Wifi, WifiOff, Users, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import type { TileInfo } from "@shared/schema";
 
+// Bot name mapping
+const getBotName = (seatPosition: number) => {
+  const botNames = ['Bot Alice', 'Bot Bob', 'Bot Charlie', 'Bot Dana'];
+  return botNames[seatPosition] || `Bot ${seatPosition + 1}`;
+};
+
 export default function GameTable() {
   const { id: tableId } = useParams<{ id: string }>();
   const { gameState, actions, isLoading, isConnected } = useGame(tableId);
@@ -87,11 +93,15 @@ export default function GameTable() {
               <Avatar className="w-8 h-8">
                 <AvatarImage src={participant.user?.profileImageUrl || ''} />
                 <AvatarFallback>
-                  {participant.user?.firstName?.[0] || 'P'}
+                  {participant.isBot 
+                    ? getBotName(seatPosition).split(' ')[1]?.[0] || 'B'  // "Bot Alice" -> "A"
+                    : (participant.user?.firstName?.[0] || 'P')}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">
-                {participant.user?.firstName || `Player ${seatPosition + 1}`}
+                {participant.isBot 
+                  ? getBotName(seatPosition)
+                  : (participant.user?.firstName || `Player ${seatPosition + 1}`)}
                 {isMyPosition && ' (You)'}
               </span>
             </div>
