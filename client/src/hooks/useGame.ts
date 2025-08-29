@@ -79,9 +79,11 @@ export function useGame(tableId?: string) {
       case 'game_started':
         setGameState(prev => ({
           ...prev,
+          table: message.data.table,
           currentGame: message.data.game,
           gameState: message.data.gameState,
-          playerStates: message.data.playerStates
+          participants: message.data.participants || prev.participants,
+          playerStates: message.data.playerStates || prev.playerStates
         }));
         break;
 

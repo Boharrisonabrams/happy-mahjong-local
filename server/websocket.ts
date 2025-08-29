@@ -193,13 +193,13 @@ export class WebSocketManager {
         participants.length + 1
       );
 
-      // Add the human player as a participant if they're not already
-      await this.ensurePlayerParticipant(client.userId, table, currentGame);
-
-      // Auto-add bots based on table configuration
+      // Auto-add bots based on table configuration and ensure user is added
       if ((table.gameMode === 'single-player' && table.botDifficulty) || 
           (table.gameMode === 'multiplayer' && table.settings?.botCount > 0)) {
-        await this.autoAddBotsToTable(table, currentGame);
+        await this.autoAddBotsToTable(table, currentGame, client.userId);
+      } else {
+        // For regular multiplayer, just add the human player
+        await this.ensurePlayerParticipant(client.userId, table, currentGame);
       }
 
     } catch (error) {
@@ -530,7 +530,7 @@ export class WebSocketManager {
     }
   }
 
-  private async autoAddBotsToTable(table: any, currentGame: any): Promise<void> {
+  private async autoAddBotsToTable(table: any, currentGame: any, humanUserId?: string): Promise<void> {
     try {
       // If no current game, create one
       if (!currentGame) {
@@ -547,6 +547,11 @@ export class WebSocketManager {
           currentGameId: currentGame.id, 
           status: 'playing' 
         });
+      }
+
+      // Add the human player first if provided
+      if (humanUserId) {
+        await this.ensurePlayerParticipant(humanUserId, table, currentGame);
       }
 
       // Get current participants
@@ -637,7 +642,7 @@ export class WebSocketManager {
     try {
       // Initialize game with tiles and starting state
       const fullTileset = gameEngine.generateFullTileset();
-      const shuffledTiles = gameEngine.shuffleTiles(fullTileset);
+      const shuffledTiles = gameEngine.shuffleTiles(fullTileset, game.seed);
       const { playerHands, wall } = gameEngine.dealInitialHands(shuffledTiles);
       
       // Update participants with their starting tiles
@@ -670,12 +675,28 @@ export class WebSocketManager {
         status: 'playing'
       });
 
+      // Get updated participants with tiles
+      const updatedParticipants = await storage.getGameParticipants(game.id);
+      
+      // Create playerStates from participants
+      const playerStates: { [key: number]: any } = {};
+      updatedParticipants.forEach(p => {
+        playerStates[p.seatPosition] = {
+          rack: p.rackTiles || [],
+          melds: p.meldedTiles || [],
+          discards: p.discardedTiles || [],
+          flowers: p.flowers || []
+        };
+      });
+      
       // Notify all clients that game has started
       this.broadcastToTable(table.id, {
         type: 'game_started',
         data: {
+          table,
           game: { ...game, gameState },
-          participants,
+          participants: updatedParticipants,
+          playerStates,
           gameState
         }
       });

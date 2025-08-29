@@ -40,12 +40,17 @@ export default function GameTable() {
 
   // Map seat positions to visual positions with current user always at bottom
   const getVisualPosition = (seatPosition: number) => {
-    if (!gameState?.myPlayer?.seatPosition && gameState?.myPlayer?.seatPosition !== 0) return seatPosition;
+    if (!gameState?.myPlayer) return seatPosition;
     
     const myPosition = gameState.myPlayer.seatPosition;
     // Rotate positions so current user is always at visual position 2 (bottom)
+    // Visual positions: 0=top, 1=right, 2=bottom, 3=left
+    if (seatPosition === myPosition) {
+      return 2; // Current player always at bottom
+    }
+    
     const offset = (seatPosition - myPosition + 4) % 4;
-    return (offset + 2) % 4; // Current player goes to position 2 (bottom)
+    return offset === 0 ? 2 : offset; // If same position, put at bottom, otherwise use offset
   };
 
   const renderPlayerPosition = (seatPosition: number) => {
