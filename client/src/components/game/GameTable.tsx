@@ -126,18 +126,16 @@ export default function GameTable() {
               isCompact={!isMyPosition}
             />
 
-            {/* Bot tile rack display - only for bots */}
+            {/* Bot tile rack display - face-down tiles for bots */}
             {participant.isBot && participant.rackTiles && (
               <div className="flex flex-wrap gap-0.5 max-w-32 justify-center">
-                {participant.rackTiles.slice(0, 14).map((tile, idx) => (
+                {participant.rackTiles.slice(0, 14).map((_, idx) => (
                   <div 
                     key={`bot-tile-${seatPosition}-${idx}`}
-                    className="w-4 h-6 bg-amber-100 dark:bg-amber-800 border border-amber-300 dark:border-amber-600 rounded-sm text-xs flex items-center justify-center text-amber-800 dark:text-amber-200 font-semibold"
-                    title={`${tile.suit} ${tile.value}`}
+                    className="w-4 h-6 bg-gradient-to-b from-orange-400 to-orange-600 dark:from-orange-600 dark:to-orange-800 border border-orange-500 dark:border-orange-700 rounded-sm shadow-sm"
+                    title="Hidden tile"
                   >
-                    {tile.suit === 'dragons' ? tile.value : 
-                     tile.suit === 'winds' ? tile.value : 
-                     typeof tile.value === 'number' ? tile.value.toString() : tile.value}
+                    {/* Face-down tile back - no content visible */}
                   </div>
                 ))}
               </div>
