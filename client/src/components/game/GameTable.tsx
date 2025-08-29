@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Wifi, WifiOff, Users, MessageSquare } from "lucide-react";
+import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from "react";
 import React from "react";
 import type { TileInfo } from "@shared/schema";
@@ -23,6 +24,7 @@ const getBotName = (seatPosition: number) => {
 export default function GameTable() {
   const { id: tableId } = useParams<{ id: string }>();
   const { gameState, actions, isLoading, isConnected } = useGame(tableId);
+  const { toast } = useToast();
   
   // Charleston state management
   const [selectedTilesForCharleston, setSelectedTilesForCharleston] = useState<TileInfo[]>([]);
@@ -33,11 +35,15 @@ export default function GameTable() {
   
   // Update received tiles when Charleston info changes
   React.useEffect(() => {
+    console.log('🀄 Charleston info changed:', gameState.charlestonInfo);
+    console.log('🀄 Received tiles from info:', gameState.charlestonInfo?.receivedTiles);
+    console.log('🀄 Current received tiles state:', receivedTilesFromCharleston.length);
+    
     if (gameState.charlestonInfo?.receivedTiles) {
-      console.log('Updating received tiles from Charleston:', gameState.charlestonInfo.receivedTiles);
+      console.log('🀄 Updating received tiles from Charleston:', gameState.charlestonInfo.receivedTiles);
       setReceivedTilesFromCharleston(gameState.charlestonInfo.receivedTiles);
     }
-  }, [gameState.charlestonInfo?.receivedTiles]);
+  }, [gameState.charlestonInfo, receivedTilesFromCharleston.length]);
 
   if (isLoading) {
     return (
@@ -291,6 +297,23 @@ export default function GameTable() {
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Player's tile rack area */}
             <div className="lg:col-span-2 space-y-3">
+              {/* Charleston tiles being passed (selected tiles) */}
+              {isCharlestonPhase && selectedTilesForCharleston.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                    Tiles Ready to Pass ({selectedTilesForCharleston.length}/3)
+                  </h4>
+                  <TileRack 
+                    tiles={selectedTilesForCharleston}
+                    onTileClick={() => {}} // Read-only display
+                    onTileSelect={() => {}} // Read-only display
+                    canInteract={false}
+                    selectedTiles={[]}
+                    maxSelection={0}
+                  />
+                </div>
+              )}
+
               {/* Charleston received tiles area */}
               {isCharlestonPhase && receivedTilesFromCharleston.length > 0 && (
                 <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
@@ -393,10 +416,18 @@ export default function GameTable() {
                           setSelectedTilesForCharleston([]);
                           setReceivedTilesFromCharleston([]); // Clear received tiles after pass
                         } else {
-                          console.log('Cannot pass jokers during Charleston');
+                          toast({
+                            title: "Cannot Pass Jokers",
+                            description: "Jokers cannot be passed during Charleston. Please select 3 non-joker tiles.",
+                            variant: "destructive"
+                          });
                         }
                       } else {
-                        console.log('Must select exactly 3 tiles for Charleston pass');
+                        toast({
+                          title: "Select 3 Tiles",
+                          description: "You must select exactly 3 tiles to pass during Charleston.",
+                          variant: "destructive"
+                        });
                       }
                       break;
                     case 'draw':
