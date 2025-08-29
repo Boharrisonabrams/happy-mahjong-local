@@ -308,26 +308,29 @@ export default function GameTable() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Status:</span>
-              <Badge variant={gameState.table.status === 'playing' ? 'default' : 'secondary'}>
-                {gameState.table.status}
-              </Badge>
+              <Badge variant="default">Active</Badge>
+            </div>
+            <div className="flex justify-between">
+              <span>Round Number:</span>
+              <span>1</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Bots:</span>
+              <span>3</span>
             </div>
             <div className="flex justify-between">
               <span>Players:</span>
-              <span>{gameState.participants.length}/4</span>
+              <div className="text-right">
+                {gameState.participants
+                  .filter(p => !p.isBot && p.userId)
+                  .map(p => (
+                    <div key={p.userId}>
+                      {p.userId === gameState.myPlayer?.userId ? 'You' : p.displayName || p.userId}
+                    </div>
+                  ))
+                }
+              </div>
             </div>
-            {gameState.gameState && (
-              <div className="flex justify-between">
-                <span>Phase:</span>
-                <Badge variant="outline">{gameState.gameState.phase}</Badge>
-              </div>
-            )}
-            {gameState.gameState?.phase === 'playing' && (
-              <div className="flex justify-between">
-                <span>Wall:</span>
-                <span>{gameState.gameState.wallCount} tiles</span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -436,8 +439,8 @@ export default function GameTable() {
           </div>
         </div>
 
-        {/* Chat */}
-        <div className="flex-1 p-4">
+        {/* Chat - moved to bottom */}
+        <div className="mt-auto p-4">
           <h3 className="font-semibold mb-3 flex items-center">
             <MessageSquare className="w-4 h-4 mr-2" />
             Table Chat
