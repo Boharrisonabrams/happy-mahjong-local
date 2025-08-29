@@ -640,6 +640,7 @@ export class WebSocketManager {
 
   private async startGame(table: any, game: any): Promise<void> {
     try {
+      console.log('=== STARTING GAME ===');
       console.log('Starting game with seed:', game.seed);
       
       // Initialize game with tiles and starting state
@@ -726,7 +727,9 @@ export class WebSocketManager {
       this.broadcastToTable(table.id, message);
 
     } catch (error) {
+      console.error('=== ERROR STARTING GAME ===');
       console.error('Error starting game:', error);
+      console.error('Stack trace:', error.stack);
     }
   }
 
