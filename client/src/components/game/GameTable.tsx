@@ -350,13 +350,12 @@ export default function GameTable() {
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="text-sm font-medium">Your Main Rack</h4>
                   <div className="text-xs text-muted-foreground">
-                    {exposedRack.length > 0 ? 'Click tiles to move to exposed rack' : ''}
-                    {isCharlestonPhase && exposedRack.length > 0 ? ' • ' : ''}
-                    {isCharlestonPhase ? 'Click exposed tiles above to move here' : ''}
+                    {isCharlestonPhase ? 'Click tiles to move to exposed rack' : ''}
+                    {isCharlestonPhase && exposedRack.length > 0 ? ' • Click exposed tiles above to move here' : ''}
                   </div>
                 </div>
                 <TileRack 
-                  tiles={myTiles}
+                  tiles={myTiles.filter(tile => !exposedRack.some(et => et.id === tile.id))}
                   onTileClick={(tile) => {
                     if (isCharlestonPhase) {
                       // During Charleston: move tile to exposed rack (same as select)
