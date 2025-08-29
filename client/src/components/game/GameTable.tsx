@@ -78,7 +78,7 @@ export default function GameTable() {
       <div 
         className={`
           absolute flex flex-col items-center space-y-2 p-3 rounded-lg
-          ${visualPosition === 0 ? 'top-4 left-1/2 transform -translate-x-1/2' : ''}
+          ${visualPosition === 0 ? 'top-8 left-1/2 transform -translate-x-1/2' : ''}
           ${visualPosition === 1 ? 'right-4 top-1/2 transform -translate-y-1/2' : ''}
           ${visualPosition === 2 ? 'bottom-4 left-1/2 transform -translate-x-1/2' : ''}
           ${visualPosition === 3 ? 'left-4 top-1/2 transform -translate-y-1/2' : ''}
@@ -127,7 +127,9 @@ export default function GameTable() {
 
             {/* Tile count indicator */}
             <div className="text-xs text-muted-foreground">
-              {playerState?.rack?.length || 13} tiles
+              {participant.isBot 
+                ? `${participant.rackTiles?.length || 14} tiles`
+                : `${playerState?.rack?.length || 13} tiles`}
             </div>
           </>
         ) : (
@@ -242,19 +244,11 @@ export default function GameTable() {
         </div>
 
         {/* Player positions - render all seats but visually positioned relative to current user */}
-        {gameState.participants && gameState.participants.length > 0 ? (
-          gameState.participants.map(p => (
-            <div key={`participant-${p.seatPosition}`}>
-              {renderPlayerPosition(p.seatPosition)}
-            </div>
-          ))
-        ) : (
-          [0, 1, 2, 3].map(seatPos => (
-            <div key={`empty-seat-${seatPos}`}>
-              {renderPlayerPosition(seatPos)}
-            </div>
-          ))
-        )}
+        {[0, 1, 2, 3].map(seatPos => (
+          <div key={`seat-${seatPos}`}>
+            {renderPlayerPosition(seatPos)}
+          </div>
+        ))}
 
         {/* Discard area - center */}
         <div className="absolute inset-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32">
