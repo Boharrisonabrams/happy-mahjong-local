@@ -232,10 +232,8 @@ export class WebSocketManager {
       console.log('Checking bot addition conditions:');
       console.log('- table.gameMode:', table.gameMode);
       console.log('- table.botDifficulty:', table.botDifficulty);
-      console.log('- table.settings?.botCount:', table.settings?.botCount);
       
-      if ((table.gameMode === 'single-player' && table.botDifficulty) || 
-          (table.gameMode === 'multiplayer' && table.settings?.botCount > 0)) {
+      if ((table.gameMode === 'single-player' && table.botDifficulty)) {
         console.log('Calling autoAddBotsToTable...');
         await this.autoAddBotsToTable(table, currentGame, client.userId);
       } else {
@@ -455,8 +453,8 @@ export class WebSocketManager {
       
       // Find receiving player (Right pass: +1, Across: +2, Left: +3)
       const passDirection = gameState.charleston?.currentPass || 'right';
-      const directionMap = { 'right': 1, 'across': 2, 'left': 3 };
-      const receiverIndex = (currentPlayer.seatPosition + directionMap[passDirection]) % 4;
+      const directionMap: Record<string, number> = { 'right': 1, 'across': 2, 'left': 3 };
+      const receiverIndex = (currentPlayer.seatPosition + (directionMap[passDirection] || 1)) % 4;
       const receivingPlayer = participants.find(p => p.seatPosition === receiverIndex);
       
       if (!receivingPlayer) {
@@ -471,8 +469,8 @@ export class WebSocketManager {
       const receivingHand = gameState.players[receivingPlayer.seatPosition].hand;
       
       // Remove tiles from current player
-      data.tiles.forEach(tile => {
-        const index = currentHand.findIndex(h => h.id === tile.id);
+      data.tiles.forEach((tile: any) => {
+        const index = currentHand.findIndex((h: any) => h.id === tile.id);
         if (index !== -1) {
           currentHand.splice(index, 1);
         }
@@ -485,7 +483,7 @@ export class WebSocketManager {
 
       // Update game state
       await storage.updateGame(game.id, {
-        gameState: gameState
+        gameState: JSON.stringify(gameState)
       });
 
       // Broadcast updated game state to all players
