@@ -652,6 +652,7 @@ export class WebSocketManager {
     try {
       // If no current game, create one
       if (!currentGame) {
+        console.log('Creating new game...');
         // Create proper game state with players array
         const gameData = {
           tableId: table.id,
@@ -673,22 +674,30 @@ export class WebSocketManager {
             }
           }
         };
+        console.log('Calling storage.createGame...');
         currentGame = await storage.createGame(gameData);
+        console.log('Game created:', currentGame.id);
         
         // Update table with current game
+        console.log('Updating table with currentGameId...');
         await storage.updateGameTable(table.id, { 
           currentGameId: currentGame.id, 
           status: 'playing' 
         });
+        console.log('Table updated successfully');
       }
 
       // Add the human player first if provided
       if (humanUserId) {
+        console.log('Adding human player...');
         await this.ensurePlayerParticipant(humanUserId, table, currentGame);
+        console.log('Human player added');
       }
 
       // Get current participants
+      console.log('Getting current participants...');
       const participants = await storage.getGameParticipants(currentGame.id);
+      console.log('Current participants:', participants.length);
       const humanPlayers = participants.filter(p => !p.isBot);
       const botPlayers = participants.filter(p => p.isBot);
       
@@ -705,6 +714,8 @@ export class WebSocketManager {
         const currentBots = participants.filter(p => p.isBot).length;
         botsNeeded = Math.max(0, targetBotCount - currentBots);
       }
+      
+      console.log('Bots needed:', botsNeeded, 'Human players:', humanPlayers.length);
       
       // Add bots to fill empty seats
       for (let i = 0; i < botsNeeded; i++) {
