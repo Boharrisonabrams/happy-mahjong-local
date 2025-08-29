@@ -433,7 +433,16 @@ export function useGame(tableId?: string) {
         data: { ready },
         tableId
       });
-    }, [sendMessage, tableId])
+    }, [sendMessage, tableId]),
+
+    charlestonDecision: useCallback((decision: 'stop' | 'continue') => {
+      sendMessage({
+        type: 'charleston_decision',
+        data: { decision },
+        tableId,
+        gameId: gameState.currentGame?.id
+      });
+    }, [sendMessage, tableId, gameState.currentGame?.id])
   };
 
   return {

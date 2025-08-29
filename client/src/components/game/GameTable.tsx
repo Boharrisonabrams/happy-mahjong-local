@@ -393,10 +393,7 @@ export default function GameTable() {
                   switch (action) {
                     case 'charleston_decision':
                       // Handle Stop/Continue decision for Round 2
-                      actions.sendMessage({
-                        type: 'charleston_decision',
-                        data: { decision: data.decision } // 'stop' or 'continue'
-                      });
+                      actions.charlestonDecision(data.decision);
                       break;
                     
                     case 'charleston_confirm':

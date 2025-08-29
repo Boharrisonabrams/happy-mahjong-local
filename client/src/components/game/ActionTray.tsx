@@ -25,6 +25,23 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
   const { gameState: currentGameState, isMyTurn, myPlayer } = gameState;
   const isReady = myPlayer?.isReady || false;
 
+  const getCharlestonPhaseDisplay = (phase: number): string => {
+    switch (phase) {
+      case 1:
+      case 2:
+      case 3:
+        return 'Charleston Round 1';
+      case 4:
+      case 5:
+      case 6:
+        return 'Charleston Round 2 (optional)';
+      case 7:
+        return 'Courtesy Pass';
+      default:
+        return 'Charleston';
+    }
+  };
+
   const renderSetupActions = () => (
     <div className="space-y-3">
       <h3 className="font-semibold text-sm">Game Setup</h3>
@@ -222,8 +239,8 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
             </div>
             {currentGameState.phase === 'charleston' && (
               <div className="flex justify-between">
-                <span>Charleston:</span>
-                <span>Phase {(currentGameState as any).charlestonPhase || 1}</span>
+                <span>Phase:</span>
+                <span>{getCharlestonPhaseDisplay((currentGameState as any).charlestonPhase || 1)}</span>
               </div>
             )}
           </>
@@ -241,18 +258,31 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
       
       {currentGameState?.phase !== 'setup' && renderGameInfo()}
 
-      {/* Hint button (if feature enabled) */}
-      <div className="pt-2 border-t">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full text-xs"
-          onClick={() => onAction('hint')}
-          data-testid="hint-button"
-        >
-          <Lightbulb className="w-3 h-3 mr-1" />
-          Get Hint
-        </Button>
+      {/* Hint and Suggested Hands buttons (if feature enabled) */}
+      <div className="pt-2 border-t space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs"
+            onClick={() => onAction('hint')}
+            data-testid="hint-button"
+          >
+            <Lightbulb className="w-3 h-3 mr-1" />
+            Get Hint
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs"
+            onClick={() => onAction('suggested_hands')}
+            data-testid="suggested-hands-button"
+          >
+            <Hand className="w-3 h-3 mr-1" />
+            Suggested Hands
+          </Button>
+        </div>
       </div>
     </Card>
   );

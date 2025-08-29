@@ -745,6 +745,29 @@ export class WebSocketManager {
           }
         });
         
+        // In single-player mode, auto-vote for bots to continue
+        const table = await storage.getTable(client.tableId);
+        const isPrivateTable = table && table.isPrivate;
+        
+        if (isPrivateTable) {
+          console.log('🤖 Single-player mode: Auto-voting for bots to continue to Round 2');
+          
+          // Auto-vote for all 3 bot players (seats 1, 2, 3 - assuming user is seat 0)
+          for (const player of gameState.players) {
+            if (player.seatPosition !== 0) { // Not the human user
+              gameState.charlestonDecision!.votes[player.seatPosition] = 'continue';
+              console.log(`🤖 Bot at seat ${player.seatPosition} auto-voted: continue`);
+            }
+          }
+          
+          // Check if we now have enough votes (3 bots + waiting for 1 human)
+          const currentVotes = Object.keys(gameState.charlestonDecision!.votes).length;
+          console.log(`🗳️ Current votes: ${currentVotes}/4 required votes`);
+          
+          // If only human vote is missing, they'll vote manually via UI
+          // If all votes collected, handle in the charleston_decision handler
+        }
+        
         // Don't increment phase yet - wait for all player decisions
         return;
         
