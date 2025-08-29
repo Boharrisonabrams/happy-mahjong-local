@@ -203,6 +203,15 @@ export function useGame(tableId?: string) {
 
   // Auto-join table when page loads and WebSocket is connected
   useEffect(() => {
+    console.log('Auto-join useEffect triggered. Values:', {
+      tableId: !!tableId,
+      user: !!user,
+      isConnected,
+      hasTable: !!gameState.table,
+      tableStatus: gameState.table?.status,
+      participants: gameState.participants?.length || 0
+    });
+    
     if (tableId && user && isConnected && !gameState.table) {
       console.log('Auto-joining table - Starting sequence:', { 
         tableId, 
