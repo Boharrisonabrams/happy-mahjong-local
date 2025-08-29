@@ -109,6 +109,21 @@ export function useGame(tableId?: string) {
         });
         break;
 
+      case 'charleston_received_tiles':
+        console.log('Charleston received tiles:', message.data);
+        // Update state with received tiles from Charleston pass
+        setGameState(prev => ({
+          ...prev,
+          charlestonInfo: {
+            ...prev.charlestonInfo,
+            receivedTiles: message.data.receivedTiles,
+            fromSeat: message.data.fromSeat,
+            phase: message.data.phase,
+            direction: message.data.direction
+          }
+        }));
+        break;
+
       case 'game_started':
         setGameState(prev => ({
           ...prev,

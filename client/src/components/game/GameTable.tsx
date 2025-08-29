@@ -33,10 +33,11 @@ export default function GameTable() {
   
   // Update received tiles when Charleston info changes
   React.useEffect(() => {
-    if (gameState.charlestonInfo?.passComplete && gameState.charlestonInfo?.receivedTiles) {
+    if (gameState.charlestonInfo?.receivedTiles) {
+      console.log('Updating received tiles from Charleston:', gameState.charlestonInfo.receivedTiles);
       setReceivedTilesFromCharleston(gameState.charlestonInfo.receivedTiles);
     }
-  }, [gameState.charlestonInfo]);
+  }, [gameState.charlestonInfo?.receivedTiles]);
 
   if (isLoading) {
     return (

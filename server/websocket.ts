@@ -508,6 +508,20 @@ export class WebSocketManager {
     return receivedTilesInfo;
   }
 
+  private getCharlestonSender(receiverSeat: number, direction: string): number {
+    // Determine who sent tiles to this receiver based on direction
+    switch (direction) {
+      case 'right': // Receiver gets from left
+        return (receiverSeat + 3) % 4;
+      case 'left': // Receiver gets from right  
+        return (receiverSeat + 1) % 4;
+      case 'across': // Receiver gets from across
+        return (receiverSeat + 2) % 4;
+      default:
+        return (receiverSeat + 2) % 4;
+    }
+  }
+
   private async handleCharlestonPass(clientId: string, data: any): Promise<void> {
     console.log('=== HANDLE CHARLESTON PASS ===');
     console.log('Client ID:', clientId);
@@ -595,6 +609,25 @@ export class WebSocketManager {
       await storage.updateGame(game.id, {
         gameState: JSON.stringify(gameState)
       });
+
+      console.log('Charleston received tiles info:', receivedTilesInfo);
+      
+      // Send specific received tiles message to each player
+      for (const participant of participants) {
+        const client = this.clients.get(participant.userId || participant.botId || '');
+        if (client && !participant.isBot && receivedTilesInfo[participant.seatPosition]) {
+          console.log(`Sending received tiles to player ${participant.seatPosition}:`, receivedTilesInfo[participant.seatPosition]);
+          client.ws.send(JSON.stringify({
+            type: 'charleston_received_tiles',
+            data: {
+              receivedTiles: receivedTilesInfo[participant.seatPosition],
+              fromSeat: this.getCharlestonSender(participant.seatPosition, passDirection),
+              phase: gameState.charlestonPhase,
+              direction: passDirection
+            }
+          }));
+        }
+      }
       
       // Broadcast updated game state to all players
       this.broadcastToTable(client.tableId, {
@@ -606,7 +639,8 @@ export class WebSocketManager {
             from: currentPlayer.seatPosition,
             to: receivingPlayer.seatPosition,
             tiles: data.tiles.length,
-            receivedTiles: receivedTilesInfo[currentPlayer.seatPosition] || []
+            direction: passDirection,
+            phase: gameState.charlestonPhase
           }
         }
       });
