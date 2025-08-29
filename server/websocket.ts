@@ -440,6 +440,66 @@ export class WebSocketManager {
     }
   }
 
+  private async processBotCharlestonPasses(participants: any[], gameState: any, passDirection: string): Promise<void> {
+    console.log('=== PROCESSING BOT CHARLESTON PASSES ===');
+    const botService = require('./services/botService').BotService.getInstance();
+    const directionMap: Record<string, number> = { 'right': 1, 'across': 2, 'left': 3 };
+    
+    // Process all bots
+    for (const participant of participants) {
+      if (!participant.isBot) continue;
+      
+      console.log(`Processing Charleston pass for bot ${participant.seatPosition}`);
+      
+      // Get bot's current hand
+      const botHand = gameState.players[participant.seatPosition].hand;
+      if (botHand.length < 3) {
+        console.log(`Bot ${participant.seatPosition} doesn't have enough tiles`);
+        continue;
+      }
+
+      // Create bot state for decision making
+      const botState = {
+        rack: botHand,
+        melds: gameState.players[participant.seatPosition].melded || [],
+        discarded: gameState.players[participant.seatPosition].discarded || [],
+        flowers: gameState.players[participant.seatPosition].flowers || []
+      };
+
+      // Get bot's difficulty from seat settings
+      const difficulty = 'standard'; // Default to standard for now
+      
+      // Let bot decide which tiles to pass
+      const tilesToPass = botService.decideBotCharlestonPass(botState, 0, difficulty);
+      
+      if (tilesToPass.length !== 3) {
+        console.log(`Bot ${participant.seatPosition} didn't select 3 tiles, selecting first 3`);
+        // Fallback: pass first 3 non-joker tiles
+        const safeTiles = botHand.filter((t: any) => !t.isJoker && !t.isFlower).slice(0, 3);
+        tilesToPass.splice(0, tilesToPass.length, ...safeTiles);
+      }
+
+      console.log(`Bot ${participant.seatPosition} passing tiles:`, tilesToPass.map((t: any) => `${t.suit}-${t.value}`));
+
+      // Find receiving player for this bot
+      const receiverIndex = (participant.seatPosition + (directionMap[passDirection] || 1)) % 4;
+      const receivingHand = gameState.players[receiverIndex].hand;
+      
+      // Remove tiles from bot's hand
+      tilesToPass.forEach((tile: any) => {
+        const index = botHand.findIndex((h: any) => h.id === tile.id);
+        if (index !== -1) {
+          botHand.splice(index, 1);
+        }
+      });
+      
+      // Add tiles to receiving player
+      receivingHand.push(...tilesToPass);
+      
+      console.log(`Bot Charleston: ${participant.seatPosition} → ${receiverIndex} (${passDirection})`);
+    }
+  }
+
   private async handleCharlestonPass(clientId: string, data: any): Promise<void> {
     console.log('=== HANDLE CHARLESTON PASS ===');
     console.log('Client ID:', clientId);
@@ -506,6 +566,9 @@ export class WebSocketManager {
       receivingHand.push(...data.tiles);
       
       console.log(`Transferred ${data.tiles.length} tiles from player ${currentPlayer.seatPosition} to ${receivingPlayer.seatPosition}`);
+
+      // AUTO-COMPLETE CHARLESTON: Trigger bot passes for this round
+      await this.processBotCharlestonPasses(participants, gameState, passDirection);
 
       // Update game state
       await storage.updateGame(game.id, {
@@ -732,7 +795,7 @@ export class WebSocketManager {
           userId: p.userId,
           botId: p.botId,
           isBot: p.isBot,
-          hasRackTiles: !!p.rackTiles?.length
+          hasRackTiles: !!(p.rackTiles as any)?.length
         });
       });
       
@@ -807,7 +870,7 @@ export class WebSocketManager {
       }
       } catch (botError) {
         console.error('CRITICAL: Bot addition loop failed:', botError);
-        console.error('Bot error stack:', botError.stack);
+        console.error('Bot error stack:', (botError as Error).stack);
       }
 
     } catch (error) {
