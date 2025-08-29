@@ -331,6 +331,62 @@ export default function GameTable() {
           </div>
         </div>
 
+        {/* Action Tray */}
+        {gameState.myPlayer && (
+          <div className="p-4 border-b border-border">
+            <ActionTray 
+              gameState={gameState}
+              onAction={(action, data) => {
+                switch (action) {
+                  case 'charleston_decision':
+                    actions.charlestonDecision(data.decision);
+                    break;
+                  case 'charleston_confirm':
+                    const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
+                    const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
+                    const isCourtesy = gameState.gameState?.charlestonPhase === 7;
+                    if (isCourtesy ? (tilesToPass.length <= 3) : (tilesToPass.length === 3)) {
+                      const nonJokerTiles = tilesToPass.filter(tile => !tile.isJoker);
+                      if (nonJokerTiles.length === tilesToPass.length) {
+                        actions.passTiles(nonJokerTiles);
+                        setExposedRack(prev => prev.filter(tile => 
+                          !tilesToPass.some(passed => passed.id === tile.id)
+                        ));
+                      } else {
+                        toast({
+                          title: "Cannot Pass Jokers",
+                          description: "Jokers cannot be passed during Charleston.",
+                          variant: "destructive"
+                        });
+                      }
+                    } else {
+                      toast({
+                        title: isCourtesy ? "Too Many Tiles" : "Select 3 Tiles",
+                        description: isCourtesy 
+                          ? `Courtesy pass allows up to 3 tiles. You have ${tilesToPass.length} tiles selected.`
+                          : `You need exactly 3 tiles in your exposed rack to pass.`,
+                        variant: "destructive"
+                      });
+                    }
+                    break;
+                  case 'draw':
+                    actions.drawTile();
+                    break;
+                  case 'call':
+                    actions.callTile(data.callType);
+                    break;
+                  case 'ready':
+                    actions.setReady(data.ready);
+                    break;
+                  case 'win':
+                    actions.declareWin();
+                    break;
+                }
+              }}
+            />
+          </div>
+        )}
+
         {/* Game Assistance */}
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold mb-3 flex items-center">
@@ -399,17 +455,19 @@ export default function GameTable() {
       {gameState.myPlayer && (
         <div className="fixed bottom-0 left-0 right-80 bg-card/95 backdrop-blur-sm border-t p-3">
           <div className="space-y-2">
-            {/* Game Actions - prominently displayed above tiles */}
-            {gameState.myPlayer && (
-              <div className="bg-accent/10 dark:bg-accent/5 p-3 rounded-lg border border-accent/30">
-                <ActionTray 
-                  gameState={gameState}
-                  onAction={(action, data) => {
-                    switch (action) {
-                      case 'charleston_decision':
-                        actions.charlestonDecision(data.decision);
-                        break;
-                      case 'charleston_confirm':
+
+            {/* Exposed Rack - contains received tiles and selected tiles for passing */}
+            {(exposedRack.length > 0 || isCharlestonPhase) && (
+              <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Exposed Rack - Click to move to main rack
+                  </h4>
+                  {isCharlestonPhase ? (
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={() => {
                         const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
                         const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
                         const isCourtesy = gameState.gameState?.charlestonPhase === 7;
@@ -436,48 +494,15 @@ export default function GameTable() {
                             variant: "destructive"
                           });
                         }
-                        break;
-                      case 'draw':
-                        actions.drawTile();
-                        break;
-                      case 'call':
-                        actions.callTile(data.callType);
-                        break;
-                      case 'ready':
-                        actions.setReady(data.ready);
-                        break;
-                      case 'win':
-                        actions.declareWin();
-                        break;
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Exposed Rack - contains received tiles and selected tiles for passing */}
-            {(exposedRack.length > 0 || isCharlestonPhase) && (
-              <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Exposed Rack - Click to move to main rack
-                  </h4>
-                  {isCharlestonPhase && (
-                    <div className="text-xs text-blue-600 dark:text-blue-400">
-                      {(() => {
-                        const phase = gameState.gameState?.charlestonPhase || 1;
-                        const phaseNames = {
-                          1: 'Right Pass',
-                          2: 'Across Pass', 
-                          3: 'Left Pass',
-                          4: 'Round 2: Left Pass',
-                          5: 'Round 2: Across Pass',
-                          6: 'Round 2: Right Pass', 
-                          7: 'Courtesy Pass (0-3 tiles)'
-                        };
-                        return `${phaseNames[phase] || `Phase ${phase}`} • Tiles in exposed rack: ${exposedRack.length}`;
-                      })()}
-                    </div>
+                      }}
+                      data-testid="confirm-pass"
+                    >
+                      Confirm Pass
+                    </Button>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">
+                      {exposedRack.length} tiles
+                    </Badge>
                   )}
                 </div>
                 <TileRack 
