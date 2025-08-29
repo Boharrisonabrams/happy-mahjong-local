@@ -745,6 +745,11 @@ export class WebSocketManager {
           }
         });
         
+        // SAVE THE DECISION STATE TO DATABASE IMMEDIATELY
+        await storage.updateGame(game.id, {
+          gameState: JSON.stringify(gameState)
+        });
+        
         // In single-player mode, auto-vote for bots to continue
         const table = await storage.getTable(client.tableId);
         const isPrivateTable = table && table.isPrivate;
@@ -760,12 +765,14 @@ export class WebSocketManager {
             }
           }
           
+          // Save bot votes immediately
+          await storage.updateGame(game.id, {
+            gameState: JSON.stringify(gameState)
+          });
+          
           // Check if we now have enough votes (3 bots + waiting for 1 human)
           const currentVotes = Object.keys(gameState.charlestonDecision!.votes).length;
           console.log(`🗳️ Current votes: ${currentVotes}/4 required votes`);
-          
-          // If only human vote is missing, they'll vote manually via UI
-          // If all votes collected, handle in the charleston_decision handler
         }
         
         // Don't increment phase yet - wait for all player decisions
