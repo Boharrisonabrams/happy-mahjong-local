@@ -30,20 +30,31 @@ export default function GameTable() {
   const [selectedTilesForCharleston, setSelectedTilesForCharleston] = useState<TileInfo[]>([]);
   const [receivedTilesFromCharleston, setReceivedTilesFromCharleston] = useState<TileInfo[]>([]);
   
+  // Exposed rack - persistent area for received tiles
+  const [exposedRack, setExposedRack] = useState<TileInfo[]>([]);
+  
   const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
   const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition || 0]?.rack || [];
   
-  // Update received tiles when Charleston info changes
+  // Update exposed rack when Charleston info changes
   React.useEffect(() => {
     console.log('🀄 Charleston info changed:', gameState.charlestonInfo);
     console.log('🀄 Received tiles from info:', gameState.charlestonInfo?.receivedTiles);
-    console.log('🀄 Current received tiles state:', receivedTilesFromCharleston.length);
+    console.log('🀄 Current exposed rack state:', exposedRack.length);
     
     if (gameState.charlestonInfo?.receivedTiles) {
-      console.log('🀄 Updating received tiles from Charleston:', gameState.charlestonInfo.receivedTiles);
-      setReceivedTilesFromCharleston(gameState.charlestonInfo.receivedTiles);
+      console.log('🀄 Adding received tiles to exposed rack:', gameState.charlestonInfo.receivedTiles);
+      // Add received tiles to exposed rack (avoid duplicates)
+      setExposedRack(prev => {
+        const newTiles = gameState.charlestonInfo.receivedTiles.filter(
+          newTile => !prev.some(existing => existing.id === newTile.id)
+        );
+        return [...prev, ...newTiles];
+      });
+      // Clear the temporary received tiles state
+      setReceivedTilesFromCharleston([]);
     }
-  }, [gameState.charlestonInfo, receivedTilesFromCharleston.length]);
+  }, [gameState.charlestonInfo, exposedRack.length]);
 
   if (isLoading) {
     return (
@@ -314,28 +325,29 @@ export default function GameTable() {
                 </div>
               )}
 
-              {/* Charleston received tiles area */}
-              {isCharlestonPhase && receivedTilesFromCharleston.length > 0 && (
-                <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+              {/* Exposed Rack - always visible area for received tiles */}
+              {exposedRack.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                      Received Tiles (from previous player) - Click to move to main rack
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Exposed Rack - Click to move to main rack
                     </h4>
-                    <div className="text-xs text-yellow-600 dark:text-yellow-400">
-                      Selected for Charleston: {selectedTilesForCharleston.length}/3
-                    </div>
+                    {isCharlestonPhase && (
+                      <div className="text-xs text-blue-600 dark:text-blue-400">
+                        Selected for Charleston: {selectedTilesForCharleston.length}/3
+                      </div>
+                    )}
                   </div>
                   <TileRack 
-                    tiles={receivedTilesFromCharleston}
+                    tiles={exposedRack}
                     onTileClick={(tile) => {
-                      // Move tile from received area to main rack by adding it to myTiles
-                      // This simulates moving the tile down to the main rack
-                      setReceivedTilesFromCharleston(prev => prev.filter(t => t.id !== tile.id));
-                      // Remove from selection if it was selected
+                      // Move tile from exposed rack to main rack
+                      setExposedRack(prev => prev.filter(t => t.id !== tile.id));
+                      // Remove from Charleston selection if it was selected
                       setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
                     }}
                     onTileSelect={(tile) => {
-                      // Allow selecting tiles directly from the received area
+                      // Allow selecting tiles for Charleston from exposed rack
                       if (isCharlestonPhase) {
                         setSelectedTilesForCharleston(prev => {
                           const isSelected = prev.some(t => t.id === tile.id);
@@ -350,7 +362,7 @@ export default function GameTable() {
                     }}
                     canInteract={true}
                     selectedTiles={selectedTilesForCharleston.filter(t => 
-                      receivedTilesFromCharleston.some(rt => rt.id === t.id)
+                      exposedRack.some(et => et.id === t.id)
                     )}
                     maxSelection={3}
                   />
@@ -360,17 +372,23 @@ export default function GameTable() {
               {/* Main tile rack */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-sm font-medium">Your Tiles</h4>
-                  {isCharlestonPhase && (
-                    <div className="text-xs text-muted-foreground">
-                      Click received tiles above to move them here
-                    </div>
-                  )}
+                  <h4 className="text-sm font-medium">Your Main Rack</h4>
+                  <div className="text-xs text-muted-foreground">
+                    {exposedRack.length > 0 ? 'Click tiles to move to exposed rack' : ''}
+                    {isCharlestonPhase && exposedRack.length > 0 ? ' • ' : ''}
+                    {isCharlestonPhase ? 'Click exposed tiles above to move here' : ''}
+                  </div>
                 </div>
                 <TileRack 
                   tiles={myTiles}
                   onTileClick={(tile) => {
-                    if (!isCharlestonPhase && gameState.isMyTurn) {
+                    if (isCharlestonPhase) {
+                      // During Charleston: move tile to exposed rack
+                      setExposedRack(prev => [...prev, tile]);
+                      // Remove from Charleston selection if it was selected
+                      setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
+                    } else if (gameState.isMyTurn) {
+                      // During normal play: discard tile
                       actions.discardTile(tile.id);
                     }
                   }}
@@ -414,7 +432,10 @@ export default function GameTable() {
                           console.log('Charleston pass: Sending tiles to server:', nonJokerTiles);
                           actions.passTiles(nonJokerTiles);
                           setSelectedTilesForCharleston([]);
-                          setReceivedTilesFromCharleston([]); // Clear received tiles after pass
+                          // Clear passed tiles from exposed rack
+                          setExposedRack(prev => prev.filter(tile => 
+                            !nonJokerTiles.some(selected => selected.id === tile.id)
+                          ));
                         } else {
                           toast({
                             title: "Cannot Pass Jokers",
