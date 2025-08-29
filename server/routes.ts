@@ -521,6 +521,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tile theme routes
   const objectStorageService = new ObjectStorageService();
 
+  // Get all public themes (for theme selection gallery)
+  app.get('/api/themes/public', async (req, res) => {
+    try {
+      const themes = await storage.getPublicTileThemes();
+      res.json(themes);
+    } catch (error) {
+      console.error("Error fetching public themes:", error);
+      res.status(500).json({ message: "Failed to fetch public themes" });
+    }
+  });
+
+  // Set user's selected theme
+  app.put('/api/user/theme', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { themeId } = req.body;
+      
+      if (!themeId) {
+        return res.status(400).json({ message: "Theme ID is required" });
+      }
+
+      // Verify theme exists and is public
+      const theme = await storage.getTileTheme(themeId);
+      if (!theme || !theme.isPublic) {
+        return res.status(404).json({ message: "Theme not found or not available" });
+      }
+
+      await storage.updateUserSelectedTheme(userId, themeId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting user theme:", error);
+      res.status(500).json({ message: "Failed to set user theme" });
+    }
+  });
+
   // Get all tile themes (authenticated user's themes or public themes)
   app.get('/api/themes', isAuthenticated, async (req: any, res) => {
     try {

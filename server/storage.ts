@@ -52,6 +52,7 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserSelectedTheme(userId: string, themeId: string): Promise<void>;
   
   // Game table operations
   createGameTable(table: InsertGameTable): Promise<GameTable>;
@@ -145,6 +146,16 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserSelectedTheme(userId: string, themeId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        selectedThemeId: themeId,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 
   // Game table operations

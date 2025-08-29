@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   
   // Game preferences
   preferredTileSkin: varchar("preferred_tile_skin").default("classic"),
+  selectedThemeId: varchar("selected_theme_id"), // User's chosen tile theme
   preferredLayout: varchar("preferred_layout").default("standard"),
   soundEnabled: boolean("sound_enabled").default(true),
   hintsEnabled: boolean("hints_enabled").default(true),
