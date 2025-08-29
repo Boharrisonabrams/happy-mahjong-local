@@ -613,11 +613,18 @@ export class WebSocketManager {
       console.log('Charleston received tiles info:', receivedTilesInfo);
       
       // Send specific received tiles message to each player
+      console.log('=== SENDING CHARLESTON RECEIVED TILES ===');
+      console.log('All participants:', participants.map(p => ({ seat: p.seatPosition, userId: p.userId, isBot: p.isBot })));
+      console.log('Available clients:', Array.from(this.clients.keys()));
+      
       for (const participant of participants) {
-        const client = this.clients.get(participant.userId || participant.botId || '');
+        const clientKey = participant.userId || participant.botId || '';
+        const client = this.clients.get(clientKey);
+        console.log(`Checking participant ${participant.seatPosition}: clientKey=${clientKey}, hasClient=${!!client}, isBot=${participant.isBot}, hasReceivedTiles=${!!receivedTilesInfo[participant.seatPosition]}`);
+        
         if (client && !participant.isBot && receivedTilesInfo[participant.seatPosition]) {
-          console.log(`Sending received tiles to player ${participant.seatPosition}:`, receivedTilesInfo[participant.seatPosition]);
-          client.ws.send(JSON.stringify({
+          console.log(`✅ SENDING received tiles to player ${participant.seatPosition}:`, receivedTilesInfo[participant.seatPosition]);
+          const message = {
             type: 'charleston_received_tiles',
             data: {
               receivedTiles: receivedTilesInfo[participant.seatPosition],
@@ -625,11 +632,13 @@ export class WebSocketManager {
               phase: gameState.charlestonPhase,
               direction: passDirection
             }
-          }));
+          };
+          console.log(`📤 Sending charleston_received_tiles message:`, message);
+          client.ws.send(JSON.stringify(message));
         }
       }
       
-      // Broadcast updated game state to all players
+      // Broadcast updated game state to all players (but without received tiles in general broadcast)
       this.broadcastToTable(client.tableId, {
         type: 'game_state_updated',
         data: { 
