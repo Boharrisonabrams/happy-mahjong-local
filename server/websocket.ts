@@ -121,6 +121,7 @@ export class WebSocketManager {
         break;
       
       case 'join_table':
+        console.log('SWITCH CASE: join_table received');
         await this.handleJoinTable(clientId, message.data);
         break;
       
