@@ -44,13 +44,8 @@ export default function GameTable() {
     
     if (gameState.charlestonInfo?.receivedTiles) {
       console.log('🀄 Adding received tiles to exposed rack:', gameState.charlestonInfo.receivedTiles);
-      // Add received tiles to exposed rack (avoid duplicates)
-      setExposedRack(prev => {
-        const newTiles = gameState.charlestonInfo.receivedTiles.filter(
-          newTile => !prev.some(existing => existing.id === newTile.id)
-        );
-        return [...prev, ...newTiles];
-      });
+      // Set exposed rack to ONLY contain received tiles (replace any existing tiles)
+      setExposedRack(gameState.charlestonInfo.receivedTiles);
       // Clear the temporary received tiles state
       setReceivedTilesFromCharleston([]);
     }
@@ -409,9 +404,9 @@ export default function GameTable() {
                           console.log('Charleston pass: Sending tiles to server:', nonJokerTiles);
                           actions.passTiles(nonJokerTiles);
                           setSelectedTilesForCharleston([]);
-                          // Clear passed tiles from exposed rack
+                          // Clear ALL selected tiles from exposed rack (they've been passed)
                           setExposedRack(prev => prev.filter(tile => 
-                            !nonJokerTiles.some(selected => selected.id === tile.id)
+                            !selectedTilesForCharleston.some(selected => selected.id === tile.id)
                           ));
                         } else {
                           toast({
