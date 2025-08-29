@@ -751,8 +751,8 @@ export class WebSocketManager {
         });
         
         // In single-player mode, auto-vote for bots to continue
-        const table = await storage.getTable(client.tableId);
-        const isPrivateTable = table && table.isPrivate;
+        const gameTable = await storage.getGameTable(client.tableId);
+        const isPrivateTable = gameTable && gameTable.isPrivate;
         
         if (isPrivateTable) {
           console.log('🤖 Single-player mode: Auto-voting for bots to continue to Round 2');
@@ -911,12 +911,15 @@ export class WebSocketManager {
       gameState.charlestonDecision.votes[currentPlayer.seatPosition] = data.decision; // 'continue' or 'stop'
       console.log(`Player ${currentPlayer.seatPosition} voted: ${data.decision}`);
 
-      // Automatically vote for bots (they randomly decide)
+      // In single-player mode, bots automatically vote to continue
+      const gameTable = await storage.getGameTable(client.tableId);
+      const isPrivateTable = gameTable && gameTable.isPrivate;
+      
       for (const participant of participants) {
         if (participant.isBot && !gameState.charlestonDecision.votes.hasOwnProperty(participant.seatPosition)) {
-          const botDecision = Math.random() > 0.3 ? 'continue' : 'stop'; // 70% chance to continue
+          const botDecision = isPrivateTable ? 'continue' : (Math.random() > 0.3 ? 'continue' : 'stop');
           gameState.charlestonDecision.votes[participant.seatPosition] = botDecision;
-          console.log(`Bot ${participant.seatPosition} voted: ${botDecision}`);
+          console.log(`Bot ${participant.seatPosition} voted: ${botDecision} ${isPrivateTable ? '(auto-continue in single-player)' : '(random)'}`);
         }
       }
 
@@ -931,33 +934,45 @@ export class WebSocketManager {
 
         console.log(`Final vote tally: Continue=${continueVotes}, Stop=${stopVotes}`);
 
-        // Unanimous agreement required to continue
-        if (continueVotes === 4) {
-          // All players want to continue - proceed to Round 2
-          console.log('🔄 Unanimous Continue! Proceeding to Round 2...');
+        // Majority vote determines outcome (standard NMJL rules)
+        if (continueVotes > stopVotes) {
+          // Majority wants to continue - proceed to Round 2
+          console.log('🔄 Majority Continue! Proceeding to Round 2...');
           gameState.charlestonPhase = 4; // Phase 4: Round 2 Left pass
           gameState.charlestonDecision = { status: 'continue' };
           
+          // Broadcast Round 2 Phase 1 started
+          const newDirection = this.getCharlestonDirectionForPhase(4);
+          const newPhaseName = this.getCharlestonPhaseName(4);
+          
           this.broadcastToTable(client.tableId, {
-            type: 'charleston_decision_result',
+            type: 'charleston_phase_started',
             data: { 
-              result: 'continue',
-              message: 'All players agreed to continue! Round 2 begins...',
+              phase: 4,
+              phaseName: newPhaseName,
+              direction: newDirection,
+              requiredTiles: 3,
               gameState
             }
           });
           
         } else {
-          // At least one player wants to stop - skip to Courtesy pass
-          console.log('🛑 One or more players voted Stop. Skipping to Courtesy pass...');
+          // Majority wants to stop - skip to Courtesy pass
+          console.log('🛑 Majority voted Stop. Skipping to Courtesy pass...');
           gameState.charlestonPhase = 7; // Phase 7: Courtesy pass
           gameState.charlestonDecision = { status: 'stop' };
           
+          // Broadcast Courtesy pass started
+          const newDirection = this.getCharlestonDirectionForPhase(7);
+          const newPhaseName = this.getCharlestonPhaseName(7);
+          
           this.broadcastToTable(client.tableId, {
-            type: 'charleston_decision_result',
+            type: 'charleston_phase_started',
             data: { 
-              result: 'stop',
-              message: `Round 2 skipped (${stopVotes} Stop, ${continueVotes} Continue). Moving to Courtesy pass...`,
+              phase: 7,
+              phaseName: newPhaseName,
+              direction: newDirection,
+              requiredTiles: 0, // Courtesy allows 0-3 tiles
               gameState
             }
           });

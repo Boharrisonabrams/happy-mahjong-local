@@ -30,11 +30,11 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
       case 1:
       case 2:
       case 3:
-        return 'Charleston Round 1';
+        return 'Charleston (required)';
       case 4:
       case 5:
       case 6:
-        return 'Charleston Round 2 (optional)';
+        return 'Charleston (optional)';
       case 7:
         return 'Courtesy Pass';
       default:
@@ -229,20 +229,16 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
       <div className="space-y-1 text-xs">
         {currentGameState && (
           <>
-            <div className="flex justify-between">
-              <span>Round:</span>
-              <span>{currentGameState.currentPlayerIndex + 1}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Wall:</span>
-              <span>{currentGameState.wallCount} tiles</span>
-            </div>
             {currentGameState.phase === 'charleston' && (
               <div className="flex justify-between">
                 <span>Phase:</span>
                 <span>{getCharlestonPhaseDisplay((currentGameState as any).charlestonPhase || 1)}</span>
               </div>
             )}
+            <div className="flex justify-between">
+              <span>Wall:</span>
+              <span>{currentGameState.wallCount} tiles</span>
+            </div>
           </>
         )}
       </div>
