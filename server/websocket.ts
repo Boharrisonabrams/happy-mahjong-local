@@ -440,7 +440,7 @@ export class WebSocketManager {
     }
   }
 
-  private async processBotCharlestonPasses(participants: any[], gameState: any, passDirection: string): Promise<{ [playerSeat: number]: any[] }> {
+  private async processBotCharlestonPasses(participants: any[], gameState: any, passDirection: string, phase: number = 1): Promise<{ [playerSeat: number]: any[] }> {
     console.log('=== PROCESSING BOT CHARLESTON PASSES ===');
     const directionMap: Record<string, number> = { 'right': 1, 'across': 2, 'left': 3 };
     const receivedTilesInfo: { [playerSeat: number]: any[] } = {};
@@ -470,13 +470,21 @@ export class WebSocketManager {
       const difficulty = 'standard'; // Default to standard for now
       
       // Let bot decide which tiles to pass
-      const tilesToPass = botService.decideBotCharlestonPass(botState, 0, difficulty);
+      let tilesToPass = botService.decideBotCharlestonPass(botState, 0, difficulty);
       
-      if (tilesToPass.length !== 3) {
-        console.log(`Bot ${participant.seatPosition} didn't select 3 tiles, selecting first 3`);
-        // Fallback: pass first 3 non-joker tiles
-        const safeTiles = botHand.filter((t: any) => !t.isJoker && !t.isFlower).slice(0, 3);
-        tilesToPass.splice(0, tilesToPass.length, ...safeTiles);
+      if (phase === 7) {
+        // Courtesy pass: bots can pass 0-3 tiles
+        const courtesyCount = Math.floor(Math.random() * 4); // 0, 1, 2, or 3 tiles
+        tilesToPass = tilesToPass.slice(0, courtesyCount);
+        console.log(`Bot ${participant.seatPosition} courtesy passing ${courtesyCount} tiles`);
+      } else {
+        // Regular passes: exactly 3 tiles
+        if (tilesToPass.length !== 3) {
+          console.log(`Bot ${participant.seatPosition} didn't select 3 tiles, selecting first 3`);
+          // Fallback: pass first 3 non-joker tiles
+          const safeTiles = botHand.filter((t: any) => !t.isJoker && !t.isFlower).slice(0, 3);
+          tilesToPass.splice(0, tilesToPass.length, ...safeTiles);
+        }
       }
 
       console.log(`Bot ${participant.seatPosition} passing tiles:`, tilesToPass.map((t: any) => `${t.suit}-${t.value}`));
@@ -535,6 +543,22 @@ export class WebSocketManager {
 
     try {
       console.log('Processing Charleston pass for user', client.userId, 'with tiles:', data.tiles);
+      
+      // VALIDATE TILE COUNT BASED ON PHASE
+      const currentPhase = gameState.charlestonPhase || 1;
+      if (currentPhase === 7) {
+        // Courtesy pass: 0-3 tiles allowed
+        if (data.tiles.length > 3) {
+          console.log('Courtesy pass: Too many tiles');
+          return;
+        }
+      } else {
+        // Regular passes: exactly 3 tiles required
+        if (data.tiles.length !== 3) {
+          console.log('Regular Charleston: Must pass exactly 3 tiles');
+          return;
+        }
+      }
       
       // Get current game
       const table = await storage.getGameTable(client.tableId);
@@ -603,7 +627,7 @@ export class WebSocketManager {
       console.log(`Transferred ${data.tiles.length} tiles from player ${currentPlayer.seatPosition} to ${receivingPlayer.seatPosition}`);
 
       // AUTO-COMPLETE CHARLESTON: Trigger bot passes for this round
-      const receivedTilesInfo = await this.processBotCharlestonPasses(participants, gameState, passDirection);
+      const receivedTilesInfo = await this.processBotCharlestonPasses(participants, gameState, passDirection, currentPhase);
 
       // Update game state
       await storage.updateGame(game.id, {
@@ -667,13 +691,39 @@ export class WebSocketManager {
       });
 
       // INCREMENT CHARLESTON PHASE
-      const nextPhase = (gameState.charlestonPhase || 1) + 1;
-      gameState.charlestonPhase = nextPhase;
+      const nextPhase = currentPhase + 1;
       
-      console.log(`Charleston phase incremented from ${(gameState.charlestonPhase || 1) - 1} to ${nextPhase}`);
+      console.log(`Charleston phase incremented from ${currentPhase} to ${nextPhase}`);
+      
+      // HANDLE CHARLESTON DECISION POINTS
+      if (currentPhase === 3) {
+        // After Round 1 (Left pass) - Stop or Continue decision
+        console.log('🛑 Round 1 complete. Stop/Continue decision needed...');
+        gameState.charlestonPhase = 3.5; // Special phase for decision
+        gameState.charlestonDecision = 'pending'; // Need player decisions
+        
+        // For now, auto-continue (TODO: Add player decision UI)
+        console.log('🔄 Auto-continuing to Round 2 for now');
+        gameState.charlestonPhase = 4;
+        gameState.charlestonDecision = 'continue';
+        
+      } else if (currentPhase === 6) {
+        // After Round 2 (Right pass) - Move to Courtesy
+        console.log('🎭 Round 2 complete. Moving to Courtesy pass...');
+        gameState.charlestonPhase = 7;
+        
+      } else if (currentPhase === 7) {
+        // After Courtesy pass - End Charleston
+        console.log('🏁 Courtesy pass complete. Charleston ending...');
+        gameState.charlestonPhase = 8; // Will trigger end condition below
+        
+      } else {
+        // Normal phase increment
+        gameState.charlestonPhase = nextPhase;
+      }
       
       // CHECK IF CHARLESTON SHOULD END
-      if (nextPhase > 7) {
+      if (gameState.charlestonPhase >= 8) {
         console.log('🏁 Charleston sequence completed! Transitioning to normal play...');
         
         // End Charleston - transition to playing phase

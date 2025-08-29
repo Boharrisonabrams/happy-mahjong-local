@@ -319,7 +319,19 @@ export default function GameTable() {
                     </h4>
                     {isCharlestonPhase && (
                       <div className="text-xs text-blue-600 dark:text-blue-400">
-                        Tiles in exposed rack: {exposedRack.length}
+                        {(() => {
+                          const phase = gameState.gameState?.charlestonPhase || 1;
+                          const phaseNames = {
+                            1: 'Right Pass',
+                            2: 'Across Pass', 
+                            3: 'Left Pass',
+                            4: 'Round 2: Left Pass',
+                            5: 'Round 2: Across Pass',
+                            6: 'Round 2: Right Pass', 
+                            7: 'Courtesy Pass (0-3 tiles)'
+                          };
+                          return `${phaseNames[phase] || `Phase ${phase}`} • Tiles in exposed rack: ${exposedRack.length}`;
+                        })()}
                       </div>
                     )}
                   </div>
@@ -384,10 +396,14 @@ export default function GameTable() {
                       const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
                       const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
                       
-                      if (tilesToPass.length === 3) {
+                      // Check if this is Courtesy pass (phase 7) which allows 0-3 tiles
+                      const isCourtesy = gameState.gameState?.charlestonPhase === 7;
+                      const requiredTiles = isCourtesy ? 'up to 3' : 'exactly 3';
+                      
+                      if (isCourtesy ? (tilesToPass.length <= 3) : (tilesToPass.length === 3)) {
                         // Filter out jokers - no jokers may be passed per Charleston rules
                         const nonJokerTiles = tilesToPass.filter(tile => !tile.isJoker);
-                        if (nonJokerTiles.length === 3) {
+                        if (nonJokerTiles.length === tilesToPass.length) {
                           console.log('Charleston pass: Sending tiles to server:', nonJokerTiles);
                           actions.passTiles(nonJokerTiles);
                           // Clear passed tiles from exposed rack
@@ -397,14 +413,16 @@ export default function GameTable() {
                         } else {
                           toast({
                             title: "Cannot Pass Jokers",
-                            description: "Jokers cannot be passed during Charleston. Please select 3 non-joker tiles.",
+                            description: "Jokers cannot be passed during Charleston. Please select non-joker tiles only.",
                             variant: "destructive"
                           });
                         }
                       } else {
                         toast({
-                          title: "Select 3 Tiles",
-                          description: `You need exactly 3 tiles in your exposed rack to pass. Currently have ${tilesToPass.length} tiles.`,
+                          title: isCourtesy ? "Too Many Tiles" : "Select 3 Tiles",
+                          description: isCourtesy 
+                            ? `Courtesy pass allows up to 3 tiles. You have ${tilesToPass.length} tiles selected.`
+                            : `You need exactly 3 tiles in your exposed rack to pass. Currently have ${tilesToPass.length} tiles.`,
                           variant: "destructive"
                         });
                       }
