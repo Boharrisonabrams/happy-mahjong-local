@@ -303,7 +303,7 @@ export default function GameTable() {
             {/* Player's tile rack area */}
             <div className="lg:col-span-2 space-y-3">
               {/* Exposed Rack - contains received tiles and selected tiles for passing */}
-              {(exposedRack.length > 0 || (isCharlestonPhase && selectedTilesForCharleston.length > 0)) && (
+              {exposedRack.length > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
