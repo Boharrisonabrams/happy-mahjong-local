@@ -214,10 +214,17 @@ export class WebSocketManager {
       );
 
       // Auto-add bots based on table configuration and ensure user is added
+      console.log('Checking bot addition conditions:');
+      console.log('- table.gameMode:', table.gameMode);
+      console.log('- table.botDifficulty:', table.botDifficulty);
+      console.log('- table.settings?.botCount:', table.settings?.botCount);
+      
       if ((table.gameMode === 'single-player' && table.botDifficulty) || 
           (table.gameMode === 'multiplayer' && table.settings?.botCount > 0)) {
+        console.log('Calling autoAddBotsToTable...');
         await this.autoAddBotsToTable(table, currentGame, client.userId);
       } else {
+        console.log('Not adding bots, adding player only');
         // For regular multiplayer, just add the human player
         await this.ensurePlayerParticipant(client.userId, table, currentGame);
       }
@@ -562,6 +569,8 @@ export class WebSocketManager {
   }
 
   private async autoAddBotsToTable(table: any, currentGame: any, humanUserId?: string): Promise<void> {
+    console.log('=== AUTO ADD BOTS TO TABLE ===');
+    console.log('Table:', table.id, 'Game:', currentGame?.id, 'User:', humanUserId);
     try {
       // If no current game, create one
       if (!currentGame) {
