@@ -141,10 +141,18 @@ export class WebSocketManager {
   }
 
   private async handleJoinTable(clientId: string, data: any): Promise<void> {
+    console.log('=== HANDLE JOIN TABLE ===');
+    console.log('Client ID:', clientId);
+    console.log('Data:', data);
+    
     const client = this.clients.get(clientId);
-    if (!client || !client.userId) return;
+    if (!client || !client.userId) {
+      console.log('No client or no userId');
+      return;
+    }
 
     const { tableId } = data;
+    console.log('User', client.userId, 'joining table', tableId);
     
     try {
       const table = await storage.getGameTable(tableId);
@@ -375,10 +383,19 @@ export class WebSocketManager {
   }
 
   private async handleCharlestonPass(clientId: string, data: any): Promise<void> {
+    console.log('=== HANDLE CHARLESTON PASS ===');
+    console.log('Client ID:', clientId);
+    console.log('Data:', data);
+    
     const client = this.clients.get(clientId);
-    if (!client || !client.userId || !client.tableId) return;
+    if (!client || !client.userId || !client.tableId) {
+      console.log('Charleston pass: No client, userId, or tableId');
+      return;
+    }
 
     try {
+      console.log('Processing Charleston pass for user', client.userId, 'with tiles:', data.tiles);
+      
       // Process Charleston pass
       // This would update the game state with the passed tiles
       
@@ -386,6 +403,8 @@ export class WebSocketManager {
         type: 'charleston_pass',
         data: { userId: client.userId, passedTiles: data.tiles }
       });
+
+      console.log('Charleston pass processed and broadcasted');
 
     } catch (error) {
       console.error('Error handling Charleston pass:', error);

@@ -112,7 +112,11 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): W
   }, []);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
+    console.log('SendMessage called with:', message);
+    console.log('WebSocket state:', ws.current?.readyState, 'isConnected:', isConnected);
+    
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      console.log('WebSocket not open, queueing message');
       // Queue the message for when connection is restored
       messageQueue.current.push(message);
       
@@ -123,7 +127,9 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): W
     }
 
     try {
+      console.log('Sending WebSocket message:', JSON.stringify(message));
       ws.current.send(JSON.stringify(message));
+      console.log('Message sent successfully');
     } catch (err) {
       console.error("Error sending WebSocket message:", err);
       setError("Failed to send message");

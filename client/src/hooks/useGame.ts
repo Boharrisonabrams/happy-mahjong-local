@@ -195,8 +195,10 @@ export function useGame(tableId?: string) {
   // Auto-join table when page loads and WebSocket is connected
   useEffect(() => {
     if (tableId && user && isConnected && !gameState.table) {
+      console.log('Auto-joining table:', { tableId, userId: user.id, isConnected });
       // Small delay to ensure authentication is processed first
       setTimeout(() => {
+        console.log('Sending join_table message:', { tableId });
         sendMessage({ 
           type: 'join_table', 
           data: { tableId } 
