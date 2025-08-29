@@ -26,11 +26,10 @@ export default function GameTable() {
   const { gameState, actions, isLoading, isConnected } = useGame(tableId);
   const { toast } = useToast();
   
-  // Charleston state management
-  const [selectedTilesForCharleston, setSelectedTilesForCharleston] = useState<TileInfo[]>([]);
+  // Charleston state management - simplified
   const [receivedTilesFromCharleston, setReceivedTilesFromCharleston] = useState<TileInfo[]>([]);
   
-  // Exposed rack - persistent area for received tiles
+  // Exposed rack - contains both received tiles and tiles moved from main rack
   const [exposedRack, setExposedRack] = useState<TileInfo[]>([]);
   
   const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
@@ -312,37 +311,22 @@ export default function GameTable() {
                     </h4>
                     {isCharlestonPhase && (
                       <div className="text-xs text-blue-600 dark:text-blue-400">
-                        Selected for Charleston: {selectedTilesForCharleston.length}/3
+                        Tiles in exposed rack: {exposedRack.length}
                       </div>
                     )}
                   </div>
                   <TileRack 
                     tiles={exposedRack}
                     onTileClick={(tile) => {
-                      // Only move tile back if it's a selected tile (not a received tile)
-                      const isSelectedTile = selectedTilesForCharleston.some(t => t.id === tile.id);
-                      if (isSelectedTile) {
-                        // Move tile from exposed rack back to main rack
-                        setExposedRack(prev => prev.filter(t => t.id !== tile.id));
-                        setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
-                      }
+                      // Move tile from exposed rack back to main rack
+                      setExposedRack(prev => prev.filter(t => t.id !== tile.id));
                     }}
                     onTileSelect={(tile) => {
-                      // Allow selecting tiles for Charleston from exposed rack
-                      if (isCharlestonPhase) {
-                        setSelectedTilesForCharleston(prev => {
-                          const isSelected = prev.some(t => t.id === tile.id);
-                          if (isSelected) {
-                            return prev.filter(t => t.id !== tile.id);
-                          } else if (prev.length < 3) {
-                            return [...prev, tile];
-                          }
-                          return prev;
-                        });
-                      }
+                      // Same as click - just move tile back to main rack
+                      setExposedRack(prev => prev.filter(t => t.id !== tile.id));
                     }}
                     canInteract={true}
-                    selectedTiles={selectedTilesForCharleston}
+                    selectedTiles={[]}
                     maxSelection={3}
                   />
                 </div>
@@ -361,11 +345,8 @@ export default function GameTable() {
                   tiles={myTiles.filter(tile => !exposedRack.some(et => et.id === tile.id))}
                   onTileClick={(tile) => {
                     if (isCharlestonPhase) {
-                      // During Charleston: move tile to exposed rack (same as select)
-                      if (selectedTilesForCharleston.length < 3) {
-                        setExposedRack(prev => [...prev, tile]);
-                        setSelectedTilesForCharleston(prev => [...prev, tile]);
-                      }
+                      // During Charleston: move tile to exposed rack
+                      setExposedRack(prev => [...prev, tile]);
                     } else if (gameState.isMyTurn) {
                       // During normal play: discard tile
                       actions.discardTile(tile.id);
@@ -373,16 +354,8 @@ export default function GameTable() {
                   }}
                   onTileSelect={(tile) => {
                     if (isCharlestonPhase) {
-                      const isSelected = selectedTilesForCharleston.some(t => t.id === tile.id);
-                      if (isSelected) {
-                        // Deselect tile: move back from exposed to main rack
-                        setExposedRack(prev => prev.filter(t => t.id !== tile.id));
-                        setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
-                      } else if (selectedTilesForCharleston.length < 3) {
-                        // Select tile: move from main rack to exposed rack
-                        setExposedRack(prev => [...prev, tile]);
-                        setSelectedTilesForCharleston(prev => [...prev, tile]);
-                      }
+                      // Same as click - move tile to exposed rack
+                      setExposedRack(prev => [...prev, tile]);
                     }
                   }}
                   canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
@@ -399,16 +372,19 @@ export default function GameTable() {
                 onAction={(action, data) => {
                   switch (action) {
                     case 'charleston_confirm':
-                      if (selectedTilesForCharleston.length === 3) {
+                      // Find tiles that are in exposed rack but NOT received tiles (these are the ones to pass)
+                      const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
+                      const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
+                      
+                      if (tilesToPass.length === 3) {
                         // Filter out jokers - no jokers may be passed per Charleston rules
-                        const nonJokerTiles = selectedTilesForCharleston.filter(tile => !tile.isJoker);
+                        const nonJokerTiles = tilesToPass.filter(tile => !tile.isJoker);
                         if (nonJokerTiles.length === 3) {
                           console.log('Charleston pass: Sending tiles to server:', nonJokerTiles);
                           actions.passTiles(nonJokerTiles);
-                          setSelectedTilesForCharleston([]);
-                          // Clear ALL selected tiles from exposed rack (they've been passed)
+                          // Clear passed tiles from exposed rack
                           setExposedRack(prev => prev.filter(tile => 
-                            !selectedTilesForCharleston.some(selected => selected.id === tile.id)
+                            !tilesToPass.some(passed => passed.id === tile.id)
                           ));
                         } else {
                           toast({
@@ -420,7 +396,7 @@ export default function GameTable() {
                       } else {
                         toast({
                           title: "Select 3 Tiles",
-                          description: "You must select exactly 3 tiles to pass during Charleston.",
+                          description: `You need exactly 3 tiles in your exposed rack to pass. Currently have ${tilesToPass.length} tiles.`,
                           variant: "destructive"
                         });
                       }
