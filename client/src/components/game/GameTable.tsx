@@ -308,25 +308,8 @@ export default function GameTable() {
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Player's tile rack area */}
             <div className="lg:col-span-2 space-y-3">
-              {/* Charleston tiles being passed (selected tiles) */}
-              {isCharlestonPhase && selectedTilesForCharleston.length > 0 && (
-                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                    Tiles Ready to Pass ({selectedTilesForCharleston.length}/3)
-                  </h4>
-                  <TileRack 
-                    tiles={selectedTilesForCharleston}
-                    onTileClick={() => {}} // Read-only display
-                    onTileSelect={() => {}} // Read-only display
-                    canInteract={false}
-                    selectedTiles={[]}
-                    maxSelection={0}
-                  />
-                </div>
-              )}
-
-              {/* Exposed Rack - always visible area for received tiles */}
-              {exposedRack.length > 0 && (
+              {/* Exposed Rack - contains received tiles and selected tiles for passing */}
+              {(exposedRack.length > 0 || (isCharlestonPhase && selectedTilesForCharleston.length > 0)) && (
                 <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
@@ -339,7 +322,7 @@ export default function GameTable() {
                     )}
                   </div>
                   <TileRack 
-                    tiles={exposedRack}
+                    tiles={[...exposedRack, ...selectedTilesForCharleston.filter(t => !exposedRack.some(et => et.id === t.id))]}
                     onTileClick={(tile) => {
                       // Move tile from exposed rack to main rack
                       setExposedRack(prev => prev.filter(t => t.id !== tile.id));
