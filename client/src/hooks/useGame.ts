@@ -129,6 +129,18 @@ export function useGame(tableId?: string) {
         });
         break;
 
+      case 'charleston_ended':
+        console.log('🏁 Charleston ended! Transitioning to normal play');
+        setGameState(prev => ({
+          ...prev,
+          gameState: { 
+            ...prev.gameState, 
+            phase: 'playing' 
+          } as GameStateInfo,
+          charlestonInfo: null // Clear Charleston info
+        }));
+        break;
+
       case 'game_started':
         setGameState(prev => ({
           ...prev,

@@ -666,6 +666,40 @@ export class WebSocketManager {
         }
       });
 
+      // INCREMENT CHARLESTON PHASE
+      const nextPhase = (gameState.charlestonPhase || 1) + 1;
+      gameState.charlestonPhase = nextPhase;
+      
+      console.log(`Charleston phase incremented from ${(gameState.charlestonPhase || 1) - 1} to ${nextPhase}`);
+      
+      // CHECK IF CHARLESTON SHOULD END
+      if (nextPhase > 7) {
+        console.log('🏁 Charleston sequence completed! Transitioning to normal play...');
+        
+        // End Charleston - transition to playing phase
+        gameState.phase = 'playing';
+        delete gameState.charlestonPhase;
+        
+        // Move all tiles from exposed rack back to main rack for all players
+        // (This will be handled on the client side when they receive the phase change)
+        
+        console.log('✅ Game transitioned from Charleston to Playing phase');
+        
+        // Broadcast phase transition
+        this.broadcastToTable(client.tableId, {
+          type: 'charleston_ended',
+          data: { 
+            gameState,
+            message: 'Charleston completed! Game begins now.' 
+          }
+        });
+        
+        // Update the game state in storage
+        await storage.updateGame(game.id, {
+          gameState: JSON.stringify(gameState)
+        });
+      }
+
       console.log('Charleston pass completed successfully');
 
     } catch (error) {

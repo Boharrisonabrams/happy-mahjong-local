@@ -33,6 +33,14 @@ export default function GameTable() {
   const [exposedRack, setExposedRack] = useState<TileInfo[]>([]);
   
   const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
+  
+  // Handle Charleston ending - move all exposed tiles back to main hand
+  useEffect(() => {
+    if (!isCharlestonPhase && exposedRack.length > 0) {
+      console.log('🏁 Charleston ended, moving', exposedRack.length, 'tiles back to main hand');
+      setExposedRack([]); // Clear the exposed rack since tiles filter back to main hand automatically
+    }
+  }, [isCharlestonPhase, exposedRack.length]);
   const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition || 0]?.rack || [];
   
   // Update exposed rack when Charleston info changes
