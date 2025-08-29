@@ -322,7 +322,7 @@ export default function GameTable() {
                     )}
                   </div>
                   <TileRack 
-                    tiles={[...exposedRack, ...selectedTilesForCharleston.filter(t => !exposedRack.some(et => et.id === t.id))]}
+                    tiles={exposedRack}
                     onTileClick={(tile) => {
                       // Move tile from exposed rack to main rack
                       setExposedRack(prev => prev.filter(t => t.id !== tile.id));
@@ -344,9 +344,7 @@ export default function GameTable() {
                       }
                     }}
                     canInteract={true}
-                    selectedTiles={selectedTilesForCharleston.filter(t => 
-                      exposedRack.some(et => et.id === t.id)
-                    )}
+                    selectedTiles={selectedTilesForCharleston}
                     maxSelection={3}
                   />
                 </div>
@@ -366,10 +364,11 @@ export default function GameTable() {
                   tiles={myTiles}
                   onTileClick={(tile) => {
                     if (isCharlestonPhase) {
-                      // During Charleston: move tile to exposed rack
-                      setExposedRack(prev => [...prev, tile]);
-                      // Remove from Charleston selection if it was selected
-                      setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
+                      // During Charleston: move tile to exposed rack (same as select)
+                      if (selectedTilesForCharleston.length < 3) {
+                        setExposedRack(prev => [...prev, tile]);
+                        setSelectedTilesForCharleston(prev => [...prev, tile]);
+                      }
                     } else if (gameState.isMyTurn) {
                       // During normal play: discard tile
                       actions.discardTile(tile.id);
@@ -377,25 +376,20 @@ export default function GameTable() {
                   }}
                   onTileSelect={(tile) => {
                     if (isCharlestonPhase) {
-                      setSelectedTilesForCharleston(prev => {
-                        const isSelected = prev.some(t => t.id === tile.id);
-                        if (isSelected) {
-                          // Deselect tile
-                          return prev.filter(t => t.id !== tile.id);
-                        } else if (prev.length < 3) {
-                          // Select tile if under limit
-                          return [...prev, tile];
-                        } else {
-                          // Already at 3-tile limit, show feedback
-                          return prev;
-                        }
-                      });
+                      const isSelected = selectedTilesForCharleston.some(t => t.id === tile.id);
+                      if (isSelected) {
+                        // Deselect tile: move back from exposed to main rack
+                        setExposedRack(prev => prev.filter(t => t.id !== tile.id));
+                        setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
+                      } else if (selectedTilesForCharleston.length < 3) {
+                        // Select tile: move from main rack to exposed rack
+                        setExposedRack(prev => [...prev, tile]);
+                        setSelectedTilesForCharleston(prev => [...prev, tile]);
+                      }
                     }
                   }}
                   canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
-                  selectedTiles={selectedTilesForCharleston.filter(t => 
-                    myTiles.some(mt => mt.id === t.id)
-                  )}
+                  selectedTiles={[]}
                   maxSelection={3}
                 />
               </div>
