@@ -293,21 +293,21 @@ export default function GameTable() {
               {/* Charleston received tiles area */}
               {isCharlestonPhase && receivedTilesFromCharleston.length > 0 && (
                 <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
-                  <h4 className="text-sm font-medium mb-2 text-yellow-800 dark:text-yellow-200">
-                    Received Tiles (from previous player)
-                  </h4>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                      Received Tiles (from previous player) - Click to move to main rack
+                    </h4>
+                    <div className="text-xs text-yellow-600 dark:text-yellow-400">
+                      Selected for Charleston: {selectedTilesForCharleston.length}/3
+                    </div>
+                  </div>
                   <TileRack 
                     tiles={receivedTilesFromCharleston}
                     onTileClick={(tile) => {
-                      setSelectedTilesForCharleston(prev => {
-                        const isSelected = prev.some(t => t.id === tile.id);
-                        if (isSelected) {
-                          return prev.filter(t => t.id !== tile.id);
-                        } else if (prev.length < 3) {
-                          return [...prev, tile];
-                        }
-                        return prev;
-                      });
+                      // Move tile from received area to main rack
+                      setReceivedTilesFromCharleston(prev => prev.filter(t => t.id !== tile.id));
+                      // Remove from selection if it was selected
+                      setSelectedTilesForCharleston(prev => prev.filter(t => t.id !== tile.id));
                     }}
                     canInteract={true}
                     selectedTiles={selectedTilesForCharleston.filter(t => 
@@ -319,32 +319,46 @@ export default function GameTable() {
               )}
 
               {/* Main tile rack */}
-              <TileRack 
-                tiles={myTiles}
-                onTileClick={(tile) => {
-                  if (!isCharlestonPhase && gameState.isMyTurn) {
-                    actions.discardTile(tile.id);
-                  }
-                }}
-                onTileSelect={(tile) => {
-                  if (isCharlestonPhase) {
-                    setSelectedTilesForCharleston(prev => {
-                      const isSelected = prev.some(t => t.id === tile.id);
-                      if (isSelected) {
-                        return prev.filter(t => t.id !== tile.id);
-                      } else if (prev.length < 3) {
-                        return [...prev, tile];
-                      }
-                      return prev;
-                    });
-                  }
-                }}
-                canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
-                selectedTiles={selectedTilesForCharleston.filter(t => 
-                  myTiles.some(mt => mt.id === t.id)
-                )}
-                maxSelection={3}
-              />
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-medium">Your Tiles</h4>
+                  {isCharlestonPhase && (
+                    <div className="text-xs text-muted-foreground">
+                      Double-click received tiles above to move them here
+                    </div>
+                  )}
+                </div>
+                <TileRack 
+                  tiles={[...myTiles, ...receivedTilesFromCharleston]}
+                  onTileClick={(tile) => {
+                    if (!isCharlestonPhase && gameState.isMyTurn) {
+                      actions.discardTile(tile.id);
+                    }
+                  }}
+                  onTileSelect={(tile) => {
+                    if (isCharlestonPhase) {
+                      setSelectedTilesForCharleston(prev => {
+                        const isSelected = prev.some(t => t.id === tile.id);
+                        if (isSelected) {
+                          // Deselect tile
+                          return prev.filter(t => t.id !== tile.id);
+                        } else if (prev.length < 3) {
+                          // Select tile if under limit
+                          return [...prev, tile];
+                        } else {
+                          // Already at 3-tile limit, show feedback
+                          return prev;
+                        }
+                      });
+                    }
+                  }}
+                  canInteract={isCharlestonPhase ? true : gameState.isMyTurn}
+                  selectedTiles={selectedTilesForCharleston.filter(t => 
+                    [...myTiles, ...receivedTilesFromCharleston].some(mt => mt.id === t.id)
+                  )}
+                  maxSelection={3}
+                />
+              </div>
             </div>
 
             {/* Action tray and chat */}
