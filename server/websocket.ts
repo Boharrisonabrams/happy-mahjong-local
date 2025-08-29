@@ -106,7 +106,11 @@ export class WebSocketManager {
     console.log('Processing message type:', message.type);
     switch (message.type) {
       case 'authenticate':
-        await this.handleAuthentication(clientId, message.data);
+        try {
+          await this.handleAuthentication(clientId, message.data);
+        } catch (error) {
+          console.error('Authentication handler error:', error);
+        }
         break;
       
       case 'join_table':

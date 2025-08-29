@@ -141,7 +141,7 @@ export function useGame(tableId?: string) {
   useEffect(() => {
     if (!user || !gameState.participants.length) return;
 
-    const myPlayer = gameState.participants.find(p => p.userId === user.id);
+    const myPlayer = gameState.participants.find(p => p.userId === (user as any)?.id);
     const isMyTurn = gameState.gameState?.currentPlayerIndex === myPlayer?.seatPosition;
 
     setGameState(prev => ({
@@ -162,9 +162,9 @@ export function useGame(tableId?: string) {
     if (tableData) {
       setGameState(prev => ({
         ...prev,
-        table: tableData.table,
-        currentGame: tableData.currentGame,
-        participants: tableData.participants
+        table: (tableData as any)?.table,
+        currentGame: (tableData as any)?.currentGame,
+        participants: (tableData as any)?.participants || []
       }));
     }
   }, [tableData]);
@@ -196,7 +196,7 @@ export function useGame(tableId?: string) {
     if (user && isConnected) {
       sendMessage({ 
         type: 'authenticate', 
-        data: { userId: user.id } 
+        data: { userId: (user as any)?.id } 
       });
     }
   }, [user, isConnected, sendMessage]);
@@ -206,7 +206,7 @@ export function useGame(tableId?: string) {
     if (tableId && user && isConnected && !gameState.table) {
       console.log('Auto-joining table - Starting sequence:', { 
         tableId, 
-        userId: user.id, 
+        userId: (user as any)?.id, 
         isConnected,
         hasTable: !!gameState.table 
       });
@@ -214,7 +214,7 @@ export function useGame(tableId?: string) {
       // Ensure authentication first, then join with longer delay
       sendMessage({ 
         type: 'authenticate', 
-        data: { userId: user.id } 
+        data: { userId: (user as any)?.id } 
       });
       
       // Longer delay to ensure authentication completes
@@ -235,7 +235,7 @@ export function useGame(tableId?: string) {
         // Ensure authentication first, then join
         sendMessage({ 
           type: 'authenticate', 
-          data: { userId: user.id } 
+          data: { userId: (user as any)?.id } 
         });
         setTimeout(() => {
           sendMessage({ type: 'join_table', data: { tableId } });
