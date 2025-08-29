@@ -212,7 +212,7 @@ export function useGame(tableId?: string) {
       participants: gameState.participants?.length || 0
     });
     
-    if (tableId && user && isConnected && !gameState.table) {
+    if (tableId && user && isConnected && gameState.participants?.length === 0) {
       console.log('Auto-joining table - Starting sequence:', { 
         tableId, 
         userId: (user as any)?.id, 
