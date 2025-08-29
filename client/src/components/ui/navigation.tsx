@@ -14,7 +14,8 @@ import {
   BookOpen,
   Puzzle,
   ShoppingCart,
-  Settings
+  Settings,
+  Palette
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ export function Navigation() {
     { path: '/play', label: 'Play', icon: Play },
     { path: '/learn', label: 'Learn', icon: BookOpen },
     { path: '/puzzle', label: 'Daily Puzzle', icon: Puzzle },
+    { path: '/themes', label: 'Themes', icon: Palette },
     { path: '/shop', label: 'Shop', icon: ShoppingCart },
   ];
 

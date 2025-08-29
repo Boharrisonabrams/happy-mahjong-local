@@ -215,6 +215,39 @@ export const analyticsEvents = pgTable("analytics_events", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Tile themes for customizable tile appearance
+export const tileThemes = pgTable("tile_themes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  creatorId: varchar("creator_id").references(() => users.id).notNull(),
+  isPublic: boolean("is_public").default(false),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  
+  // Tile image mappings - object with paths to different tile images
+  tileImagePaths: jsonb("tile_image_paths").notNull(), // { dots: {...}, bams: {...}, craks: {...}, etc. }
+  
+  // Preview image for theme selection UI
+  previewImagePath: varchar("preview_image_path"),
+  
+  // Usage stats
+  downloadCount: integer("download_count").default(0),
+  likeCount: integer("like_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User tile theme preferences and likes
+export const userThemePreferences = pgTable("user_theme_preferences", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  themeId: uuid("theme_id").references(() => tileThemes.id).notNull(),
+  isLiked: boolean("is_liked").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   hostedTables: many(gameTables),
@@ -225,6 +258,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   tutorialProgress: many(tutorialProgress),
   puzzleAttempts: many(puzzleAttempts),
   analyticsEvents: many(analyticsEvents),
+  createdThemes: many(tileThemes),
+  themePreferences: many(userThemePreferences),
 }));
 
 export const gameTablesRelations = relations(gameTables, ({ one, many }) => ({
@@ -256,6 +291,25 @@ export const gameParticipantsRelations = relations(gameParticipants, ({ one }) =
   user: one(users, {
     fields: [gameParticipants.userId],
     references: [users.id],
+  }),
+}));
+
+export const tileThemesRelations = relations(tileThemes, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [tileThemes.creatorId],
+    references: [users.id],
+  }),
+  userPreferences: many(userThemePreferences),
+}));
+
+export const userThemePreferencesRelations = relations(userThemePreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userThemePreferences.userId],
+    references: [users.id],
+  }),
+  theme: one(tileThemes, {
+    fields: [userThemePreferences.themeId],
+    references: [tileThemes.id],
   }),
 }));
 
@@ -331,6 +385,17 @@ export const insertAnalyticsEventSchema = createInsertSchema(analyticsEvents).om
   timestamp: true,
 });
 
+export const insertTileThemeSchema = createInsertSchema(tileThemes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserThemePreferenceSchema = createInsertSchema(userThemePreferences).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -358,6 +423,10 @@ export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type InsertAnalyticsEvent = z.infer<typeof insertAnalyticsEventSchema>;
 export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export type InsertTileTheme = z.infer<typeof insertTileThemeSchema>;
+export type TileTheme = typeof tileThemes.$inferSelect;
+export type InsertUserThemePreference = z.infer<typeof insertUserThemePreferenceSchema>;
+export type UserThemePreference = typeof userThemePreferences.$inferSelect;
 
 // Game-specific types
 export interface TileInfo {

@@ -13,6 +13,7 @@ import Learn from "@/pages/learn";
 import Puzzle from "@/pages/puzzle";
 import Profile from "@/pages/profile";
 import Shop from "@/pages/shop";
+import Themes from "@/pages/themes";
 import Admin from "@/pages/admin";
 import Terms from "@/pages/legal/terms";
 import Privacy from "@/pages/legal/privacy";
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/puzzle" component={Puzzle} />
           <Route path="/profile" component={Profile} />
           <Route path="/shop" component={Shop} />
+          <Route path="/themes" component={Themes} />
           <Route path="/admin" component={Admin} />
         </>
       )}

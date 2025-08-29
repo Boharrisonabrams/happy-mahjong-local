@@ -9,7 +9,16 @@ import { patternValidator } from "./services/patternValidator";
 import { puzzleGenerator } from "./services/puzzleGenerator";
 import { featureFlagService } from "./services/featureFlags";
 import { analyticsService } from "./services/analytics";
-import { insertGameTableSchema, insertGameSchema, insertChatMessageSchema, insertUserReportSchema, insertHandPatternSchema } from "@shared/schema";
+import { 
+  insertGameTableSchema, 
+  insertGameSchema, 
+  insertChatMessageSchema, 
+  insertUserReportSchema, 
+  insertHandPatternSchema,
+  insertTileThemeSchema,
+  insertUserThemePreferenceSchema
+} from "@shared/schema";
+import { ObjectStorageService } from "./objectStorage";
 import fs from 'fs';
 import path from 'path';
 
@@ -506,6 +515,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error tracking analytics event:", error);
       res.status(500).json({ message: "Failed to track event" });
+    }
+  });
+
+  // Tile theme routes
+  const objectStorageService = new ObjectStorageService();
+
+  // Get all tile themes (authenticated user's themes or public themes)
+  app.get('/api/themes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { public_only } = req.query;
+      
+      let themes;
+      if (public_only === 'true') {
+        themes = await storage.getPublicTileThemes();
+      } else {
+        // Get user's own themes plus public themes
+        const userThemes = await storage.getTileThemes(userId);
+        const publicThemes = await storage.getPublicTileThemes();
+        themes = [...userThemes, ...publicThemes.filter(pt => pt.creatorId !== userId)];
+      }
+      
+      res.json(themes);
+    } catch (error) {
+      console.error("Error fetching tile themes:", error);
+      res.status(500).json({ message: "Failed to fetch tile themes" });
+    }
+  });
+
+  // Get specific tile theme
+  app.get('/api/themes/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const theme = await storage.getTileTheme(req.params.id);
+      if (!theme) {
+        return res.status(404).json({ message: "Theme not found" });
+      }
+      res.json(theme);
+    } catch (error) {
+      console.error("Error fetching tile theme:", error);
+      res.status(500).json({ message: "Failed to fetch tile theme" });
+    }
+  });
+
+  // Create new tile theme
+  app.post('/api/themes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const themeData = insertTileThemeSchema.parse({
+        ...req.body,
+        creatorId: userId,
+      });
+
+      const theme = await storage.createTileTheme(themeData);
+      res.json(theme);
+
+      // Track analytics
+      await analyticsService.trackEvent(
+        'theme_created',
+        { themeId: theme.id, themeName: theme.name },
+        userId,
+        req.sessionID
+      );
+    } catch (error) {
+      console.error("Error creating tile theme:", error);
+      res.status(500).json({ message: "Failed to create tile theme" });
+    }
+  });
+
+  // Get upload URL for tile theme images
+  app.post('/api/themes/upload', isAuthenticated, async (req: any, res) => {
+    try {
+      const { themeId, tileType } = req.body;
+      
+      if (!themeId || !tileType) {
+        return res.status(400).json({ message: "themeId and tileType are required" });
+      }
+
+      const uploadURL = await objectStorageService.getTileThemeUploadURL(themeId, tileType);
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Update theme with uploaded image paths
+  app.post('/api/themes/:id/images', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { imageType, imageUrl } = req.body;
+      
+      if (!imageType || !imageUrl) {
+        return res.status(400).json({ message: "imageType and imageUrl are required" });
+      }
+
+      const theme = await storage.getTileTheme(req.params.id);
+      if (!theme) {
+        return res.status(404).json({ message: "Theme not found" });
+      }
+      
+      if (theme.creatorId !== userId) {
+        return res.status(403).json({ message: "Not authorized to modify this theme" });
+      }
+
+      // Normalize the uploaded URL to a local object path
+      const normalizedPath = objectStorageService.normalizeObjectEntityPath(imageUrl);
+
+      // Update the tile image paths in the theme
+      const currentPaths = theme.tileImagePaths || {};
+      const updatedPaths = {
+        ...currentPaths,
+        [imageType]: normalizedPath
+      };
+
+      const updatedTheme = await storage.updateTileTheme(req.params.id, {
+        tileImagePaths: updatedPaths
+      });
+
+      res.json(updatedTheme);
+    } catch (error) {
+      console.error("Error updating theme images:", error);
+      res.status(500).json({ message: "Failed to update theme images" });
     }
   });
 

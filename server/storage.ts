@@ -12,6 +12,8 @@ import {
   puzzleAttempts,
   featureFlags,
   analyticsEvents,
+  tileThemes,
+  userThemePreferences,
   type User,
   type UpsertUser,
   type GameTable,
@@ -38,6 +40,10 @@ import {
   type InsertFeatureFlag,
   type AnalyticsEvent,
   type InsertAnalyticsEvent,
+  type TileTheme,
+  type InsertTileTheme,
+  type UserThemePreference,
+  type InsertUserThemePreference,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, count, or } from "drizzle-orm";
@@ -104,6 +110,19 @@ export interface IStorage {
   // Analytics operations
   logAnalyticsEvent(event: InsertAnalyticsEvent): Promise<AnalyticsEvent>;
   getAnalyticsEvents(filters?: any): Promise<AnalyticsEvent[]>;
+  
+  // Tile theme operations
+  createTileTheme(theme: InsertTileTheme): Promise<TileTheme>;
+  getTileThemes(creatorId?: string): Promise<TileTheme[]>;
+  getPublicTileThemes(): Promise<TileTheme[]>;
+  getTileTheme(id: string): Promise<TileTheme | undefined>;
+  updateTileTheme(id: string, updates: Partial<TileTheme>): Promise<TileTheme>;
+  deleteTileTheme(id: string): Promise<void>;
+  
+  // User theme preference operations
+  setUserThemePreference(preference: InsertUserThemePreference): Promise<UserThemePreference>;
+  getUserThemePreferences(userId: string): Promise<UserThemePreference[]>;
+  removeUserThemePreference(userId: string, themeId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -422,6 +441,85 @@ export class DatabaseStorage implements IStorage {
       .from(analyticsEvents)
       .orderBy(desc(analyticsEvents.timestamp))
       .limit(filters?.limit || 1000);
+  }
+
+  // Tile theme operations
+  async createTileTheme(themeData: InsertTileTheme): Promise<TileTheme> {
+    const [theme] = await db.insert(tileThemes).values(themeData).returning();
+    return theme;
+  }
+
+  async getTileThemes(creatorId?: string): Promise<TileTheme[]> {
+    if (creatorId) {
+      return await db
+        .select()
+        .from(tileThemes)
+        .where(and(eq(tileThemes.creatorId, creatorId), eq(tileThemes.isActive, true)))
+        .orderBy(desc(tileThemes.createdAt));
+    }
+    return await db
+      .select()
+      .from(tileThemes)
+      .where(eq(tileThemes.isActive, true))
+      .orderBy(desc(tileThemes.createdAt));
+  }
+
+  async getPublicTileThemes(): Promise<TileTheme[]> {
+    return await db
+      .select()
+      .from(tileThemes)
+      .where(and(eq(tileThemes.isPublic, true), eq(tileThemes.isActive, true)))
+      .orderBy(desc(tileThemes.downloadCount));
+  }
+
+  async getTileTheme(id: string): Promise<TileTheme | undefined> {
+    const [theme] = await db.select().from(tileThemes).where(eq(tileThemes.id, id));
+    return theme;
+  }
+
+  async updateTileTheme(id: string, updates: Partial<TileTheme>): Promise<TileTheme> {
+    const [theme] = await db
+      .update(tileThemes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(tileThemes.id, id))
+      .returning();
+    return theme;
+  }
+
+  async deleteTileTheme(id: string): Promise<void> {
+    await db.update(tileThemes).set({ isActive: false }).where(eq(tileThemes.id, id));
+  }
+
+  // User theme preference operations
+  async setUserThemePreference(preferenceData: InsertUserThemePreference): Promise<UserThemePreference> {
+    const [preference] = await db
+      .insert(userThemePreferences)
+      .values(preferenceData)
+      .onConflictDoUpdate({
+        target: [userThemePreferences.userId, userThemePreferences.themeId],
+        set: { isLiked: preferenceData.isLiked },
+      })
+      .returning();
+    return preference;
+  }
+
+  async getUserThemePreferences(userId: string): Promise<UserThemePreference[]> {
+    return await db
+      .select()
+      .from(userThemePreferences)
+      .where(eq(userThemePreferences.userId, userId))
+      .orderBy(desc(userThemePreferences.createdAt));
+  }
+
+  async removeUserThemePreference(userId: string, themeId: string): Promise<void> {
+    await db
+      .delete(userThemePreferences)
+      .where(
+        and(
+          eq(userThemePreferences.userId, userId),
+          eq(userThemePreferences.themeId, themeId)
+        )
+      );
   }
 }
 
