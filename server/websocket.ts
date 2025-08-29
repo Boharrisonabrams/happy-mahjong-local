@@ -840,10 +840,23 @@ export class WebSocketManager {
         gameState.phase = 'playing';
         delete gameState.charlestonPhase;
         
+        // GIVE EAST (DEALER) THE 14TH TILE
+        // In American Mahjong, East starts with 14 tiles and discards first
+        const eastPlayer = gameState.players.find(p => p.seatPosition === 0); // East is seat 0
+        if (eastPlayer && gameState.wall.length > 0) {
+          const extraTile = gameState.wall.shift(); // Take first tile from wall
+          eastPlayer.hand.push(extraTile);
+          console.log(`🎯 East (seat 0) drew the 14th tile: ${extraTile.suit} ${extraTile.value}`);
+          console.log(`🎯 East now has ${eastPlayer.hand.length} tiles, ready to discard first`);
+        }
+        
+        // Set East as current player (ready to discard)
+        gameState.currentPlayerIndex = 0; // East goes first
+        
         // Move all tiles from exposed rack back to main rack for all players
         // (This will be handled on the client side when they receive the phase change)
         
-        console.log('✅ Game transitioned from Charleston to Playing phase');
+        console.log('✅ Game transitioned from Charleston to Playing phase - East ready to discard');
         
         // Broadcast phase transition
         this.broadcastToTable(client.tableId, {
