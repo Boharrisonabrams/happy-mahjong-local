@@ -195,15 +195,27 @@ export function useGame(tableId?: string) {
   // Auto-join table when page loads and WebSocket is connected
   useEffect(() => {
     if (tableId && user && isConnected && !gameState.table) {
-      console.log('Auto-joining table:', { tableId, userId: user.id, isConnected });
-      // Small delay to ensure authentication is processed first
+      console.log('Auto-joining table - Starting sequence:', { 
+        tableId, 
+        userId: user.id, 
+        isConnected,
+        hasTable: !!gameState.table 
+      });
+      
+      // Ensure authentication first, then join with longer delay
+      sendMessage({ 
+        type: 'authenticate', 
+        data: { userId: user.id } 
+      });
+      
+      // Longer delay to ensure authentication completes
       setTimeout(() => {
-        console.log('Sending join_table message:', { tableId });
+        console.log('Auto-join: Sending join_table after auth delay');
         sendMessage({ 
           type: 'join_table', 
           data: { tableId } 
         });
-      }, 200);
+      }, 500); // Increased from 200ms to 500ms
     }
   }, [tableId, user, isConnected, gameState.table, sendMessage]);
 

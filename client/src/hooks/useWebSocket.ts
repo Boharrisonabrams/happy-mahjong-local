@@ -114,11 +114,13 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): W
   const sendMessage = useCallback((message: WebSocketMessage) => {
     console.log('SendMessage called with:', message);
     console.log('WebSocket state:', ws.current?.readyState, 'isConnected:', isConnected);
+    console.log('Queue length before:', messageQueue.current.length);
     
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      console.log('WebSocket not open, queueing message');
+      console.log('WebSocket not open, queueing message. State:', ws.current?.readyState);
       // Queue the message for when connection is restored
       messageQueue.current.push(message);
+      console.log('Queue length after:', messageQueue.current.length);
       
       if (!isConnected) {
         setError("Not connected. Message queued.");
