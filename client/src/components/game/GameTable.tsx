@@ -57,14 +57,15 @@ export default function GameTable() {
     if (!gameState?.myPlayer) return seatPosition;
     
     const myPosition = gameState.myPlayer.seatPosition;
-    // Rotate positions so current user is always at visual position 2 (bottom)
     // Visual positions: 0=top, 1=right, 2=bottom, 3=left
     if (seatPosition === myPosition) {
       return 2; // Current player always at bottom
     }
     
+    // Calculate visual position based on offset from current player
     const offset = (seatPosition - myPosition + 4) % 4;
-    return offset === 0 ? 2 : offset; // If same position, put at bottom, otherwise use offset
+    const visualMap = [2, 0, 1, 3]; // offset 0->bottom, 1->top, 2->right, 3->left  
+    return visualMap[offset];
   };
 
   const renderPlayerPosition = (seatPosition: number) => {
@@ -125,6 +126,23 @@ export default function GameTable() {
               isCompact={!isMyPosition}
             />
 
+            {/* Bot tile rack display - only for bots */}
+            {participant.isBot && participant.rackTiles && (
+              <div className="flex flex-wrap gap-0.5 max-w-32 justify-center">
+                {participant.rackTiles.slice(0, 14).map((tile, idx) => (
+                  <div 
+                    key={`bot-tile-${seatPosition}-${idx}`}
+                    className="w-4 h-6 bg-amber-100 dark:bg-amber-800 border border-amber-300 dark:border-amber-600 rounded-sm text-xs flex items-center justify-center text-amber-800 dark:text-amber-200 font-semibold"
+                    title={`${tile.suit} ${tile.value}`}
+                  >
+                    {tile.suit === 'dragons' ? tile.value : 
+                     tile.suit === 'winds' ? tile.value : 
+                     typeof tile.value === 'number' ? tile.value.toString() : tile.value}
+                  </div>
+                ))}
+              </div>
+            )}
+            
             {/* Tile count indicator */}
             <div className="text-xs text-muted-foreground">
               {participant.isBot 
