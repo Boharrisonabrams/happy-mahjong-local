@@ -167,14 +167,17 @@ export class WebSocketManager {
     console.log('User', client.userId, 'joining table', tableId);
     
     try {
+      console.log('Getting table from storage...');
       const table = await storage.getGameTable(tableId);
       if (!table) {
+        console.log('Table not found:', tableId);
         this.sendToClient(clientId, {
           type: 'error',
           data: { message: 'Table not found' }
         });
         return;
       }
+      console.log('Table found:', table.id, 'gameMode:', table.gameMode);
 
       // Add client to table
       client.tableId = tableId;
@@ -185,8 +188,12 @@ export class WebSocketManager {
       this.tableClients.get(tableId)!.add(clientId);
 
       // Get current game state
+      console.log('Getting current game state...');
+      console.log('table.currentGameId:', table.currentGameId);
       const currentGame = table.currentGameId ? await storage.getGame(table.currentGameId) : null;
+      console.log('Current game:', currentGame?.id || 'none');
       const participants = currentGame ? await storage.getGameParticipants(currentGame.id) : [];
+      console.log('Current participants:', participants.length);
 
       // Send table state to client
       this.sendToClient(clientId, {
@@ -205,13 +212,19 @@ export class WebSocketManager {
       }, clientId);
 
       // Track analytics
-      await analyticsService.trackTableJoined(
-        client.userId,
-        tableId,
-        client.sessionId,
-        table.isPrivate,
-        participants.length + 1
-      );
+      console.log('Tracking analytics...');
+      try {
+        await analyticsService.trackTableJoined(
+          client.userId,
+          tableId,
+          client.sessionId,
+          table.isPrivate,
+          participants.length + 1
+        );
+        console.log('Analytics tracked successfully');
+      } catch (analyticsError) {
+        console.error('Analytics error (non-fatal):', analyticsError);
+      }
 
       // Auto-add bots based on table configuration and ensure user is added
       console.log('Checking bot addition conditions:');
