@@ -34,16 +34,18 @@ export function ThemeManager() {
   // Fetch all public themes (your curated collection)
   const { data: themes = [], isLoading: themesLoading } = useQuery<TileTheme[]>({
     queryKey: ['/api/themes/public'],
-    queryFn: () => apiRequest('/api/themes/public'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/themes/public');
+      return response.json();
+    },
   });
 
   // Select theme mutation (sets user preference)
   const selectThemeMutation = useMutation({
-    mutationFn: (themeId: string) => apiRequest('/api/user/theme', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ themeId }),
-    }),
+    mutationFn: async (themeId: string) => {
+      const response = await apiRequest('PUT', '/api/user/theme', { themeId });
+      return response.json();
+    },
     onSuccess: (data, themeId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       const selectedTheme = themes.find(t => t.id === themeId);
@@ -63,9 +65,10 @@ export function ThemeManager() {
 
   // Like theme mutation
   const likeThemeMutation = useMutation({
-    mutationFn: (themeId: string) => apiRequest(`/api/themes/${themeId}/like`, {
-      method: 'POST',
-    }),
+    mutationFn: async (themeId: string) => {
+      const response = await apiRequest('POST', `/api/themes/${themeId}/like`);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/themes/public'] });
     },
@@ -95,8 +98,8 @@ export function ThemeManager() {
     likeThemeMutation.mutate(themeId);
   };
 
-  const isPremiumUser = user?.subscriptionTier === 'pro';
-  const userSelectedTheme = user?.selectedThemeId;
+  const isPremiumUser = (user as any)?.subscriptionTier === 'pro';
+  const userSelectedTheme = (user as any)?.selectedThemeId;
 
   if (themesLoading) {
     return (
