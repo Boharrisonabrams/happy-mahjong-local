@@ -77,6 +77,8 @@ export function useGame(tableId?: string) {
         break;
 
       case 'game_started':
+        console.log('Received game_started message:', message.data);
+        console.log('PlayerStates in message:', message.data.playerStates);
         setGameState(prev => ({
           ...prev,
           table: message.data.table,

@@ -640,16 +640,27 @@ export class WebSocketManager {
 
   private async startGame(table: any, game: any): Promise<void> {
     try {
+      console.log('Starting game with seed:', game.seed);
+      
       // Initialize game with tiles and starting state
       const fullTileset = gameEngine.generateFullTileset();
+      console.log('Generated tileset with', fullTileset.length, 'tiles');
+      
       const shuffledTiles = gameEngine.shuffleTiles(fullTileset, game.seed);
+      console.log('Shuffled tiles');
+      
       const { playerHands, wall } = gameEngine.dealInitialHands(shuffledTiles);
+      console.log('Dealt hands - playerHands:', playerHands.map(h => h.length), 'wall:', wall.length);
       
       // Update participants with their starting tiles
       const participants = await storage.getGameParticipants(game.id);
+      console.log('Found participants:', participants.map(p => ({ id: p.id, seatPosition: p.seatPosition, isBot: p.isBot })));
+      
       for (let i = 0; i < participants.length; i++) {
         const participant = participants[i];
         const hand = playerHands[i] || [];
+        
+        console.log(`Updating participant ${participant.id} (seat ${participant.seatPosition}) with ${hand.length} tiles`);
         
         await storage.updateGameParticipant(participant.id, {
           rackTiles: hand
@@ -677,6 +688,11 @@ export class WebSocketManager {
 
       // Get updated participants with tiles
       const updatedParticipants = await storage.getGameParticipants(game.id);
+      console.log('Updated participants with tiles:', updatedParticipants.map(p => ({ 
+        id: p.id, 
+        seatPosition: p.seatPosition, 
+        tilesCount: p.rackTiles?.length || 0 
+      })));
       
       // Create playerStates from participants
       const playerStates: { [key: number]: any } = {};
@@ -689,8 +705,13 @@ export class WebSocketManager {
         };
       });
       
+      console.log('Created playerStates:', Object.keys(playerStates).map(key => ({
+        seat: key,
+        rackSize: playerStates[key].rack.length
+      })));
+      
       // Notify all clients that game has started
-      this.broadcastToTable(table.id, {
+      const message = {
         type: 'game_started',
         data: {
           table,
@@ -699,7 +720,10 @@ export class WebSocketManager {
           playerStates,
           gameState
         }
-      });
+      };
+      
+      console.log('Broadcasting game_started message with playerStates keys:', Object.keys(playerStates));
+      this.broadcastToTable(table.id, message);
 
     } catch (error) {
       console.error('Error starting game:', error);
