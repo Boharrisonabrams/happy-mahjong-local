@@ -724,8 +724,22 @@ export class WebSocketManager {
       console.log('Getting current participants...');
       const participants = await storage.getGameParticipants(currentGame.id);
       console.log('Current participants:', participants.length);
+      
+      // Debug participant data
+      participants.forEach((p, i) => {
+        console.log(`Participant ${i}:`, {
+          seatPosition: p.seatPosition,
+          userId: p.userId,
+          botId: p.botId,
+          isBot: p.isBot,
+          hasRackTiles: !!p.rackTiles?.length
+        });
+      });
+      
       const humanPlayers = participants.filter(p => !p.isBot);
       const botPlayers = participants.filter(p => p.isBot);
+      console.log('Human players filtered:', humanPlayers.length);
+      console.log('Bot players filtered:', botPlayers.length);
       
       // Calculate how many bots we need based on table configuration
       const maxPlayers = table.maxPlayers || 4;
