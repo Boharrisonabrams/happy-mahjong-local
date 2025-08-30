@@ -28,9 +28,9 @@ export function MahjongTile({
   const { getThemeConfig } = useTileTheme();
   
   const sizeClasses = {
-    small: orientation === 'vertical' ? 'w-8 h-10' : 'w-10 h-8',
-    medium: orientation === 'vertical' ? 'w-10 h-12' : 'w-12 h-10',
-    large: orientation === 'vertical' ? 'w-12 h-16' : 'w-16 h-12'
+    small: orientation === 'vertical' ? 'w-10 h-13' : 'w-13 h-10',
+    medium: orientation === 'vertical' ? 'w-13 h-16' : 'w-16 h-13',
+    large: orientation === 'vertical' ? 'w-16 h-20' : 'w-20 h-16'
   };
 
   const getTileDisplay = () => {

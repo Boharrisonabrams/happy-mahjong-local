@@ -132,12 +132,20 @@ export default function GameTable() {
                     : (participant.user?.firstName?.[0] || 'P')}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">
-                {participant.isBot 
-                  ? getBotName(seatPosition)
-                  : (participant.user?.firstName || `Player ${seatPosition + 1}`)}
-                {isMyPosition && ' (You)'}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">
+                  {participant.isBot 
+                    ? getBotName(seatPosition)
+                    : (participant.user?.firstName || `Player ${seatPosition + 1}`)}
+                  {isMyPosition && ' (You)'}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {(() => {
+                    const winds = ['East', 'South', 'West', 'North'];
+                    return winds[seatPosition];
+                  })()}
+                </span>
+              </div>
             </div>
             
             <div className="flex space-x-1">
@@ -245,7 +253,22 @@ export default function GameTable() {
               <div className="space-y-4">
                 <h3 className="text-2xl font-bold text-white">Charleston Phase</h3>
                 <p className="text-green-100">
-                  Round {gameState.gameState?.charlestonPhase || 1} - Select 3 tiles to pass
+                  {(() => {
+                    const phase = gameState.gameState?.charlestonPhase || 1;
+                    const getDirection = (phase: number) => {
+                      switch (phase) {
+                        case 1: return 'to the right';
+                        case 2: return 'across';  
+                        case 3: return 'to the left';
+                        case 4: return 'to the left';
+                        case 5: return 'across';
+                        case 6: return 'to the right';
+                        case 7: return 'across';
+                        default: return 'to the right';
+                      }
+                    };
+                    return `Round ${Math.ceil(phase / 3)} - Select 3 tiles to pass ${getDirection(phase)}`;
+                  })()}
                 </p>
               </div>
             )}
@@ -351,7 +374,7 @@ export default function GameTable() {
               Get Hint
             </Button>
             <Button variant="outline" size="sm" className="w-full justify-start">
-              Suggested Hand
+              Suggested Hands
             </Button>
             <div className="flex items-center justify-between pt-1">
               <label className="text-sm">Turn on Coach</label>

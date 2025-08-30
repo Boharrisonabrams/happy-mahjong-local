@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTileTheme } from '@/contexts/TileThemeContext';
 import { MahjongTile } from './MahjongTile';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Sample tiles to preview themes
@@ -18,9 +19,27 @@ const PREVIEW_TILES = [
 export function TileThemePreview() {
   const { currentTheme, setTheme, getAllThemes } = useTileTheme();
   const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const themes = getAllThemes();
   const selectedTheme = themes[selectedThemeIndex];
+
+  // Check initial dark mode state
+  useEffect(() => {
+    setIsDarkMode(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const handlePrevious = () => {
     setSelectedThemeIndex((prev) => (prev === 0 ? themes.length - 1 : prev - 1));
@@ -35,7 +54,20 @@ export function TileThemePreview() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Light/Dark Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium">Appearance</label>
+        <div className="flex items-center space-x-2">
+          <Sun className="h-4 w-4" />
+          <Switch 
+            checked={isDarkMode} 
+            onCheckedChange={toggleDarkMode}
+          />
+          <Moon className="h-4 w-4" />
+        </div>
+      </div>
+
       <label className="text-sm font-medium block">Tile Theme</label>
       
       {/* Theme selector with navigation */}

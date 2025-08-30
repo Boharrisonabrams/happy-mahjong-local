@@ -84,7 +84,7 @@ export function TileRack({
       </div>
       
       <div 
-        className="flex flex-wrap gap-2 justify-center md:justify-start"
+        className="flex flex-wrap gap-0.5 justify-center md:justify-start"
         data-testid="tile-rack"
       >
         {sortedTiles.map((tile, index) => (
