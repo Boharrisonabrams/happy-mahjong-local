@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TileThemePreview } from "./TileThemePreview";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Wifi, WifiOff, Users, MessageSquare, Lightbulb, Crown, Settings } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
@@ -243,7 +244,9 @@ export default function GameTable() {
             {gameState.gameState?.phase === 'charleston' && (
               <div className="space-y-4">
                 <h3 className="text-2xl font-bold text-white">Charleston Phase</h3>
-                <p className="text-green-100">Select 3 tiles to pass</p>
+                <p className="text-green-100">
+                  Round {gameState.gameState?.charlestonPhase || 1} - Select 3 tiles to pass
+                </p>
               </div>
             )}
 
@@ -314,7 +317,7 @@ export default function GameTable() {
               <Badge variant="default">Active</Badge>
             </div>
             <div className="flex justify-between">
-              <span>Round Number:</span>
+              <span>Games Played:</span>
               <span>1</span>
             </div>
             <div className="flex justify-between">
@@ -367,7 +370,7 @@ export default function GameTable() {
             <Button variant="outline" size="sm" className="w-full justify-start">
               New Game
             </Button>
-            <Button variant="destructive" size="sm" className="w-full justify-start">
+            <Button variant="outline" size="sm" className="w-full justify-start">
               End Game
             </Button>
           </div>
@@ -380,24 +383,7 @@ export default function GameTable() {
             Settings
           </h3>
           <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Tile Theme</label>
-              <Select value={currentTheme} onValueChange={setTheme}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getAllThemes().map((theme) => (
-                    <SelectItem key={theme.id} value={theme.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{theme.name}</span>
-                        <span className="text-xs text-muted-foreground">{theme.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <TileThemePreview />
           </div>
         </div>
 

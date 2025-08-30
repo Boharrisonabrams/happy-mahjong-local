@@ -112,7 +112,7 @@ export function TileRack({
 
       {canInteract && onTileClick && (
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Click a tile to discard
+          Click a tile to pass
         </p>
       )}
 
