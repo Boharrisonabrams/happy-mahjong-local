@@ -8,12 +8,14 @@ import { GameChat } from "./GameChat";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Wifi, WifiOff, Users, MessageSquare, Lightbulb, Crown, Settings } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from "react";
 import React from "react";
 import type { TileInfo } from "@shared/schema";
+import { useTileTheme } from "@/contexts/TileThemeContext";
 
 // Bot name mapping
 const getBotName = (seatPosition: number) => {
@@ -25,6 +27,7 @@ export default function GameTable() {
   const { id: tableId } = useParams<{ id: string }>();
   const { gameState, actions, isLoading, isConnected } = useGame(tableId);
   const { toast } = useToast();
+  const { currentTheme, setTheme, getAllThemes } = useTileTheme();
   
   // Charleston state management - simplified
   const [receivedTilesFromCharleston, setReceivedTilesFromCharleston] = useState<TileInfo[]>([]);
@@ -432,10 +435,25 @@ export default function GameTable() {
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </h3>
-          <div className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full justify-start">
-              Tile Theme
-            </Button>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Tile Theme</label>
+              <Select value={currentTheme} onValueChange={setTheme}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getAllThemes().map((theme) => (
+                    <SelectItem key={theme.id} value={theme.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{theme.name}</span>
+                        <span className="text-xs text-muted-foreground">{theme.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

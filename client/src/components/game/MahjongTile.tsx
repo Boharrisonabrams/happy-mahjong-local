@@ -2,6 +2,7 @@ import { TileInfo } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useTileTheme } from "@/contexts/TileThemeContext";
 
 interface MahjongTileProps {
   tile: TileInfo;
@@ -24,6 +25,8 @@ export function MahjongTile({
   onClick,
   className
 }: MahjongTileProps) {
+  const { getThemeConfig } = useTileTheme();
+  
   const sizeClasses = {
     small: orientation === 'vertical' ? 'w-8 h-10' : 'w-10 h-8',
     medium: orientation === 'vertical' ? 'w-10 h-12' : 'w-12 h-10',
@@ -31,34 +34,27 @@ export function MahjongTile({
   };
 
   const getTileDisplay = () => {
+    const themeConfig = getThemeConfig();
+    
     if (tile.isJoker) {
-      return <span className="text-purple-600 font-bold">🃏</span>;
+      return themeConfig.renderJoker();
     }
 
     if (tile.isFlower) {
-      return <span className="text-pink-500">🌸</span>;
+      return themeConfig.renderFlower();
     }
 
     switch (tile.suit) {
       case 'dots':
-        return <span className="text-blue-600 font-bold">{tile.value}●</span>;
+        return themeConfig.renderDot(tile.value as number);
       case 'bams':
-        return <span className="text-green-600 font-bold">{tile.value}🎋</span>;
+        return themeConfig.renderBam(tile.value as number);
       case 'craks':
-        return <span className="text-red-600 font-bold">{tile.value}万</span>;
+        return themeConfig.renderCrak(tile.value as number);
       case 'winds':
-        const windDisplay = {
-          'N': '北', 'E': '東', 'S': '南', 'W': '西'
-        }[tile.value as string] || tile.value;
-        return <span className="text-slate-700 font-bold">{windDisplay}</span>;
+        return themeConfig.renderWind(tile.value as string);
       case 'dragons':
-        const dragonDisplay = {
-          'R': '中', 'G': '發', 'W': '白'
-        }[tile.value as string] || tile.value;
-        const dragonColor = {
-          'R': 'text-red-600', 'G': 'text-green-600', 'W': 'text-slate-500'
-        }[tile.value as string] || 'text-slate-600';
-        return <span className={cn("font-bold", dragonColor)}>{dragonDisplay}</span>;
+        return themeConfig.renderDragon(tile.value as string);
       default:
         return <span className="font-bold">{tile.value}</span>;
     }
