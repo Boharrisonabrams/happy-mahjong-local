@@ -337,67 +337,11 @@ export default function GameTable() {
           </div>
         </div>
 
-        {/* Action Tray */}
-        {gameState.myPlayer && (
-          <div className="p-4 border-b border-border">
-            <ActionTray 
-              gameState={gameState}
-              onAction={(action, data) => {
-                switch (action) {
-                  case 'charleston_decision':
-                    actions.charlestonDecision(data.decision);
-                    break;
-                  case 'charleston_confirm':
-                    const receivedTileIds = gameState.charlestonInfo?.receivedTiles?.map(t => t.id) || [];
-                    const tilesToPass = exposedRack.filter(tile => !receivedTileIds.includes(tile.id));
-                    const isCourtesy = gameState.gameState?.charlestonPhase === 7;
-                    if (isCourtesy ? (tilesToPass.length <= 3) : (tilesToPass.length === 3)) {
-                      const nonJokerTiles = tilesToPass.filter(tile => !tile.isJoker);
-                      if (nonJokerTiles.length === tilesToPass.length) {
-                        actions.passTiles(nonJokerTiles);
-                        setExposedRack(prev => prev.filter(tile => 
-                          !tilesToPass.some(passed => passed.id === tile.id)
-                        ));
-                      } else {
-                        toast({
-                          title: "Cannot Pass Jokers",
-                          description: "Jokers cannot be passed during Charleston.",
-                          variant: "destructive"
-                        });
-                      }
-                    } else {
-                      toast({
-                        title: isCourtesy ? "Too Many Tiles" : "Select 3 Tiles",
-                        description: isCourtesy 
-                          ? `Courtesy pass allows up to 3 tiles. You have ${tilesToPass.length} tiles selected.`
-                          : `You need exactly 3 tiles in your exposed rack to pass.`,
-                        variant: "destructive"
-                      });
-                    }
-                    break;
-                  case 'draw':
-                    actions.drawTile();
-                    break;
-                  case 'call':
-                    actions.callTile(data.callType);
-                    break;
-                  case 'ready':
-                    actions.setReady(data.ready);
-                    break;
-                  case 'win':
-                    actions.declareWin();
-                    break;
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {/* Game Assistance */}
+        {/* Happy Helper */}
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold mb-3 flex items-center">
             <Lightbulb className="w-4 h-4 mr-2" />
-            Game Help
+            Happy Helper
           </h3>
           <div className="space-y-2">
             <Button variant="outline" size="sm" className="w-full justify-start">
