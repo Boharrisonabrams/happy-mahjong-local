@@ -120,35 +120,56 @@ export function ActionTray({ gameState, onAction, className }: ActionTrayProps) 
     </div>
   );
 
-  const renderCharlestonActions = () => (
-    <div className="space-y-3">
-      <h3 className="font-semibold text-sm">Charleston Phase</h3>
-      
-      <div className="space-y-2">
-        <Badge variant="secondary" className="w-full justify-center">
-          {gameState.charlestonInfo?.phaseName || 'Pass 3 tiles'}
-        </Badge>
-        
-        <Button 
-          size="sm" 
-          className="w-full"
-          disabled={false}
-          onClick={() => onAction('charleston_confirm')}
-          data-testid="charleston-confirm"
-        >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Confirm Pass
-        </Button>
+  const renderCharlestonActions = () => {
+    const charlestonPhase = currentGameState?.charlestonPhase || 1;
+    const isEndOfRound1 = charlestonPhase === 4;
+    const isCourtesyPass = charlestonPhase === 7;
+    
+    const getPhaseDisplay = () => {
+      if (isCourtesyPass) return 'Courtesy Pass';
+      if (isEndOfRound1) return 'Round 1 Complete';
+      const roundNum = Math.ceil(charlestonPhase / 3);
+      return `Round ${roundNum}`;
+    };
 
-        <div className="text-xs text-muted-foreground text-center">
-          {gameState.charlestonInfo?.requiredTiles === 0 
-            ? 'Pass 0-3 tiles (your choice)'
-            : `Select ${gameState.charlestonInfo?.requiredTiles || 3} tiles from your rack`
-          }
+    const getButtonText = () => {
+      if (isEndOfRound1) return 'Continue to Round 2?';
+      if (isCourtesyPass) return 'Complete Courtesy Pass';
+      return 'Confirm Pass';
+    };
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-sm">Charleston Phase</h3>
+        
+        <div className="space-y-2">
+          <Badge variant="secondary" className="w-full justify-center">
+            {getPhaseDisplay()}
+          </Badge>
+          
+          <Button 
+            size="sm" 
+            className="w-full"
+            disabled={false}
+            onClick={() => onAction(isEndOfRound1 ? 'charleston_round2_decision' : 'charleston_confirm')}
+            data-testid="charleston-confirm"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            {getButtonText()}
+          </Button>
+
+          <div className="text-xs text-muted-foreground text-center">
+            {isEndOfRound1 
+              ? 'All players must agree to continue'
+              : isCourtesyPass
+              ? 'Pass 0-3 tiles (your choice)'
+              : `Select ${gameState.charlestonInfo?.requiredTiles || 3} tiles from your rack`
+            }
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPlayingActions = () => (
     <div className="space-y-3">

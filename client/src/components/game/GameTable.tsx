@@ -37,28 +37,17 @@ export default function GameTable() {
   // Exposed rack - contains both received tiles and tiles moved from main rack
   const [exposedRack, setExposedRack] = useState<TileInfo[]>([]);
   
-  // Charleston round 2 confirmation dialog
-  const [showRound2Dialog, setShowRound2Dialog] = useState(false);
-  const [pendingRound2, setPendingRound2] = useState(false);
+  // Remove dialog-based charleston flow - use button-driven flow instead
   
   const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
   
-  // Handle Charleston phase transitions
+  // Handle Charleston ending - move all exposed tiles back to main hand
   useEffect(() => {
-    const charlestonPhase = gameState.gameState?.charlestonPhase || 1;
-    
-    // Show Round 2 dialog after phase 3 completes (end of Round 1)
-    if (isCharlestonPhase && charlestonPhase === 4 && !showRound2Dialog && !pendingRound2) {
-      setShowRound2Dialog(true);
-      setPendingRound2(true);
-    }
-    
-    // Handle Charleston ending - move all exposed tiles back to main hand
     if (!isCharlestonPhase && exposedRack.length > 0) {
       console.log('🏁 Charleston ended, moving', exposedRack.length, 'tiles back to main hand');
       setExposedRack([]); // Clear the exposed rack since tiles filter back to main hand automatically
     }
-  }, [isCharlestonPhase, exposedRack.length, gameState.gameState?.charlestonPhase, showRound2Dialog, pendingRound2]);
+  }, [isCharlestonPhase, exposedRack.length]);
   const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition || 0]?.rack || [];
   
   // Update exposed rack when Charleston info changes
@@ -576,49 +565,6 @@ export default function GameTable() {
         </div>
       )}
 
-      {/* Charleston Round 2 Confirmation Dialog */}
-      <Dialog open={showRound2Dialog} onOpenChange={setShowRound2Dialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Continue with Round 2?</DialogTitle>
-            <DialogDescription className="space-y-2">
-              <p>Charleston Round 1 is complete.</p>
-              <p className="italic text-muted-foreground">
-                All bots will opt-in, remember all players must agree to continue.
-              </p>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowRound2Dialog(false);
-                setPendingRound2(false);
-                // Skip to courtesy pass or end charleston
-                toast({
-                  title: "Charleston Round 2 Skipped",
-                  description: "Moving to courtesy pass"
-                });
-              }}
-            >
-              Skip Round 2
-            </Button>
-            <Button 
-              onClick={() => {
-                setShowRound2Dialog(false);
-                setPendingRound2(false);
-                // Continue with round 2
-                toast({
-                  title: "Starting Charleston Round 2",
-                  description: "All players agreed to continue"
-                });
-              }}
-            >
-              Continue Round 2
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
