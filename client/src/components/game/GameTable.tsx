@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TileThemePreview } from "./TileThemePreview";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2, Wifi, WifiOff, Users, MessageSquare, Lightbulb, Crown, Settings } from "lucide-react";
@@ -36,15 +37,28 @@ export default function GameTable() {
   // Exposed rack - contains both received tiles and tiles moved from main rack
   const [exposedRack, setExposedRack] = useState<TileInfo[]>([]);
   
+  // Charleston round 2 confirmation dialog
+  const [showRound2Dialog, setShowRound2Dialog] = useState(false);
+  const [pendingRound2, setPendingRound2] = useState(false);
+  
   const isCharlestonPhase = gameState.gameState?.phase === 'charleston';
   
-  // Handle Charleston ending - move all exposed tiles back to main hand
+  // Handle Charleston phase transitions
   useEffect(() => {
+    const charlestonPhase = gameState.gameState?.charlestonPhase || 1;
+    
+    // Show Round 2 dialog after phase 3 completes (end of Round 1)
+    if (isCharlestonPhase && charlestonPhase === 4 && !showRound2Dialog && !pendingRound2) {
+      setShowRound2Dialog(true);
+      setPendingRound2(true);
+    }
+    
+    // Handle Charleston ending - move all exposed tiles back to main hand
     if (!isCharlestonPhase && exposedRack.length > 0) {
       console.log('🏁 Charleston ended, moving', exposedRack.length, 'tiles back to main hand');
       setExposedRack([]); // Clear the exposed rack since tiles filter back to main hand automatically
     }
-  }, [isCharlestonPhase, exposedRack.length]);
+  }, [isCharlestonPhase, exposedRack.length, gameState.gameState?.charlestonPhase, showRound2Dialog, pendingRound2]);
   const myTiles = gameState.playerStates?.[gameState.myPlayer?.seatPosition || 0]?.rack || [];
   
   // Update exposed rack when Charleston info changes
@@ -250,26 +264,44 @@ export default function GameTable() {
             )}
             
             {gameState.gameState?.phase === 'charleston' && (
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-white">Charleston Phase</h3>
-                <p className="text-green-100">
-                  {(() => {
-                    const phase = gameState.gameState?.charlestonPhase || 1;
-                    const getDirection = (phase: number) => {
-                      switch (phase) {
-                        case 1: return 'to the right';
-                        case 2: return 'across';  
-                        case 3: return 'to the left';
-                        case 4: return 'to the left';
-                        case 5: return 'across';
-                        case 6: return 'to the right';
-                        case 7: return 'across';
-                        default: return 'to the right';
-                      }
+              <div className="space-y-2 text-center">
+                <h3 className="text-2xl font-bold text-white">Charleston</h3>
+                {(() => {
+                  const phase = gameState.gameState?.charlestonPhase || 1;
+                  const getPhaseInfo = (phase: number) => {
+                    if (phase === 7) {
+                      return {
+                        round: "Courtesy Pass",
+                        direction: "Pass 0-3 tiles across",
+                        isCourtesy: true
+                      };
+                    }
+                    
+                    const roundNum = Math.ceil(phase / 3);
+                    const directions = ['to the right', 'across', 'to the left'];
+                    const directionIndex = (phase - 1) % 3;
+                    
+                    return {
+                      round: `Round ${roundNum}`,
+                      direction: `Pass 3 tiles ${directions[directionIndex]}`,
+                      isCourtesy: false
                     };
-                    return `Round ${Math.ceil(phase / 3)} - Select 3 tiles to pass ${getDirection(phase)}`;
-                  })()}
-                </p>
+                  };
+                  
+                  const info = getPhaseInfo(phase);
+                  
+                  return (
+                    <>
+                      <p className="text-xl font-semibold text-green-100">{info.round}</p>
+                      <p className="text-lg text-green-200">{info.direction}</p>
+                      {info.isCourtesy && (
+                        <p className="text-sm text-green-300 italic">
+                          Optional - you may pass 0, 1, 2, or 3 tiles
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 
@@ -543,6 +575,50 @@ export default function GameTable() {
           </Card>
         </div>
       )}
+
+      {/* Charleston Round 2 Confirmation Dialog */}
+      <Dialog open={showRound2Dialog} onOpenChange={setShowRound2Dialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Continue with Round 2?</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>Charleston Round 1 is complete.</p>
+              <p className="italic text-muted-foreground">
+                All bots will opt-in, remember all players must agree to continue.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRound2Dialog(false);
+                setPendingRound2(false);
+                // Skip to courtesy pass or end charleston
+                toast({
+                  title: "Charleston Round 2 Skipped",
+                  description: "Moving to courtesy pass"
+                });
+              }}
+            >
+              Skip Round 2
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowRound2Dialog(false);
+                setPendingRound2(false);
+                // Continue with round 2
+                toast({
+                  title: "Starting Charleston Round 2",
+                  description: "All players agreed to continue"
+                });
+              }}
+            >
+              Continue Round 2
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
