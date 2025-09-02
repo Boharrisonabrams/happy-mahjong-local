@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: happy-mahjong
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOCAL_DEV_MODE
+        value: false
