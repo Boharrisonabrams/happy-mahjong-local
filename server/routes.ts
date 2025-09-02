@@ -1,7 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+// Use local auth in development, Replit auth in production
+const useLocalAuth = process.env.LOCAL_DEV_MODE === "true";
+const authModule = useLocalAuth ? "./localAuth" : "./replitAuth";
+const { setupAuth, isAuthenticated } = await import(authModule);
 import { setupWebSocket } from "./websocket";
 import { gameEngine } from "./services/gameEngine";
 import { botService } from "./services/botService";
@@ -18,9 +21,26 @@ import {
   insertTileThemeSchema,
   insertUserThemePreferenceSchema
 } from "@shared/schema";
-import { ObjectStorageService } from "./objectStorage";
+// Import storage service based on environment
+let ObjectStorageService: any;
+let objectStorageServiceInstance: any;
+
+if (useLocalAuth) {
+  const localModule = await import("./localObjectStorage");
+  ObjectStorageService = localModule.LocalObjectStorageService;
+  objectStorageServiceInstance = localModule.localObjectStorageService;
+} else {
+  const cloudModule = await import("./objectStorage");
+  ObjectStorageService = cloudModule.ObjectStorageService;
+  objectStorageServiceInstance = new ObjectStorageService();
+}
 import fs from 'fs';
 import path from 'path';
+
+// Helper function to get user ID consistently across auth systems
+function getUserId(user: any): string {
+  return useLocalAuth ? user.id : user.claims.sub;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -35,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -69,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/tables', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { seatBotSettings, botCount, ...bodyData } = req.body;
       
       // Prepare settings object
@@ -136,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/tables/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const table = await storage.getGameTable(req.params.id);
       
       if (!table) {
@@ -159,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Game routes
   app.post('/api/tables/:tableId/games', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { tableId } = req.params;
       
       const table = await storage.getGameTable(tableId);
@@ -213,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/tables/:tableId/chat', isAuthenticated, featureFlagService.createFeatureMiddleware('chat_enabled'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const messageData = insertChatMessageSchema.parse({
         ...req.body,
         tableId: req.params.tableId,
@@ -303,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/puzzles/:puzzleId/attempts', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { puzzleId } = req.params;
       const { timeSeconds, moves, hintsUsed, completed } = req.body;
 
@@ -353,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tutorial routes
   app.get('/api/tutorial/progress', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const progress = await storage.getTutorialProgress(userId);
       res.json(progress);
     } catch (error) {
@@ -364,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/tutorial/progress', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { tutorialStep, completed } = req.body;
       
       const progress = await storage.updateTutorialProgress({
@@ -391,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User reporting routes
   app.post('/api/reports', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const reportData = insertUserReportSchema.parse({
         ...req.body,
         reporterId: userId
@@ -454,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile routes
   app.get('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -476,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const updates = req.body;
       
       const user = await storage.upsertUser({ id: userId, ...updates });
@@ -519,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Tile theme routes
-  const objectStorageService = new ObjectStorageService();
+  const objectStorageService = objectStorageServiceInstance;
 
   // Get all public themes (for theme selection gallery)
   app.get('/api/themes/public', async (req, res) => {
@@ -535,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set user's selected theme
   app.put('/api/user/theme', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { themeId } = req.body;
       
       if (!themeId) {
@@ -559,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all tile themes (authenticated user's themes or public themes)
   app.get('/api/themes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { public_only } = req.query;
       
       let themes;
@@ -596,7 +616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new tile theme
   app.post('/api/themes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const themeData = insertTileThemeSchema.parse({
         ...req.body,
         creatorId: userId,
@@ -638,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update theme with uploaded image paths
   app.post('/api/themes/:id/images', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req.user);
       const { imageType, imageUrl } = req.body;
       
       if (!imageType || !imageUrl) {

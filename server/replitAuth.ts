@@ -8,12 +8,15 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
+if (!process.env.REPLIT_DOMAINS && process.env.LOCAL_DEV_MODE !== "true") {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
 const getOidcConfig = memoize(
   async () => {
+    if (process.env.LOCAL_DEV_MODE === "true") {
+      return null; // Mock config for local development
+    }
     return await client.discovery(
       new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
       process.env.REPL_ID!
@@ -67,6 +70,11 @@ async function upsertUser(
 }
 
 export async function setupAuth(app: Express) {
+  if (process.env.LOCAL_DEV_MODE === "true") {
+    // Skip Replit auth setup in local development
+    return;
+  }
+  
   app.set("trust proxy", 1);
   app.use(getSession());
   app.use(passport.initialize());
