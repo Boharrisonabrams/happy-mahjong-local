@@ -21,16 +21,26 @@ import Privacy from "@/pages/legal/privacy";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
       {/* Public routes available to all users */}
       <Route path="/legal/terms" component={Terms} />
       <Route path="/legal/privacy" component={Privacy} />
       
-      {/* Main app routing based on auth status */}
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
+      {/* Authenticated user routes */}
+      {isAuthenticated ? (
         <>
           <Route path="/" component={Home} />
           <Route path="/play" component={Play} />
@@ -40,6 +50,18 @@ function Router() {
           <Route path="/profile" component={Profile} />
           <Route path="/shop" component={Shop} />
           <Route path="/admin" component={Admin} />
+        </>
+      ) : (
+        <>
+          {/* Unauthenticated users see landing page for all routes */}
+          <Route path="/" component={Landing} />
+          <Route path="/play" component={Landing} />
+          <Route path="/learn" component={Landing} />
+          <Route path="/puzzle" component={Landing} />
+          <Route path="/profile" component={Landing} />
+          <Route path="/shop" component={Landing} />
+          <Route path="/admin" component={Landing} />
+          <Route path="/table/:id" component={Landing} />
         </>
       )}
       
